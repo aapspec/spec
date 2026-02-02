@@ -67,7 +67,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 ## 4. Overview and Relationship to Existing Standards
 
-AAP operates within a standard OAuth architecture consisting of an Authorization Server (AS), Resource Servers (RS), and clients. In AAP, the client is an autonomous AI agent. Token issuance follows OAuth 2.0; typically the Client Credentials Grant [RFC6749] Section 4.4 is used for agent-to-API (M2M) flows. Client (agent) authentication MAY use standard client authentication (client secret, mTLS, etc.) or assertions (e.g. JWT-based client authentication) as per the deployment profile. When the agent is a workload identified by SPIFFE, the AS MAY accept SVIDs or derived tokens as part of client authentication; AAP does not define a new flow but MAY integrate with SPIFFE. Tokens issued by the AS include additional structured claims that Resource Servers MUST evaluate before allowing operations.
+AAP operates within a standard OAuth architecture consisting of an Authorization Server (AS), Resource Servers (RS), and clients. In AAP, the client is an autonomous AI agent. Token issuance follows OAuth 2.0; typically the Client Credentials Grant [RFC6749] Section 4.4 is used for agent-to-API (M2M) flows. Client (agent) authentication MAY use standard client authentication (client secret, mTLS, etc.) or assertions (e.g. JWT-based client authentication) as per the deployment profile. When the agent is a workload identified by SPIFFE [SPIFFE], the AS MAY accept SVIDs or derived tokens as part of client authentication; AAP does not define a new flow but MAY integrate with SPIFFE. Tokens issued by the AS include additional structured claims that Resource Servers MUST evaluate before allowing operations.
 
 AAP does not introduce a new identity or protocol scheme; it reuses existing standards and adds a layer of claims and validation rules.
 
@@ -91,7 +91,7 @@ AAP tokens extend standard JWT claims [RFC7519] with the following structured se
 - **Agent identity** — MAY be expressed via OIDC `sub` and `iss`, or via the `aap_agent` claim. The `aap_agent` claim MAY contain, among other fields, a SPIFFE ID (`spiffe://trust-domain/...`) when the deployment uses SPIFFE/SPIRE for workload identity.
 - **Delegation** — The delegation chain MAY use the standard `act` (actor) claim from [RFC8693]. Optionally, `aap_delegation` MAY carry additional metadata (e.g. depth, origin) when more than `act` is required.
 - **Oversight** — Human oversight requirements are expressed as policy metadata in `aap_oversight` (e.g. `requires_approval_for` for certain capability types, or `max_autonomous_scope`). AAP only carries the intent; enforcement is at the Resource Server or orchestrator (e.g. OIDC step-up with `acr_values` or an external approval API), and is out of scope for this profile.
-- **Audit** — Trace identifiers in `aap_audit` SHOULD be compatible with existing trace context propagation (e.g. W3C Trace Context, OpenTelemetry) so that logs can be correlated with distributed traces without defining a new audit schema.
+- **Audit** — Trace identifiers in `aap_audit` SHOULD be compatible with existing trace context propagation (e.g. W3C Trace Context, OpenTelemetry [OpenTelemetry]) so that logs can be correlated with distributed traces without defining a new audit schema.
 
 ### 5.2. Structured Sections (Claim Names)
 
@@ -612,7 +612,7 @@ This section defines the requirements that an Authorization Server (AS) MUST sat
 
 - Strongly authenticate agents before issuing tokens (e.g. Client Credentials Grant per RFC 6749 Section 4.4).
 - Support client authentication via client secret, mTLS, or assertions (e.g. JWT-based client authentication) as per the deployment profile.
-- Optionally integrate with SPIFFE SVIDs when the agent is a workload identified by SPIFFE.
+- Optionally integrate with SPIFFE SVIDs when the agent is a workload identified by SPIFFE [SPIFFE].
 
 ### 8.2. Token Binding
 
@@ -1475,9 +1475,17 @@ AAP occupies a unique position in the authorization ecosystem:
 
 ### 16.2. Informative References
 
+[RFC5234] Crocker, D. and P. Overell, "Augmented BNF for Syntax Specifications: ABNF", RFC 5234, DOI 10.17487/RFC5234, January 2008, https://www.rfc-editor.org/info/rfc5234.
+
+[RFC7517] Jones, M., "JSON Web Key (JWK)", RFC 7517, DOI 10.17487/RFC7517, May 2015, https://www.rfc-editor.org/info/rfc7517.
+
+[RFC7800] Jones, M., Bradley, J., and H. Tschofenig, "Proof-of-Possession Key Semantics for JSON Web Tokens (JWTs)", RFC 7800, DOI 10.17487/RFC7800, April 2016, https://www.rfc-editor.org/info/rfc7800.
+
 [OIDC] Sakimura, N., Bradley, J., Jones, M., de Medeiros, B., and C. Mortimore, "OpenID Connect Core 1.0", The OpenID Foundation, February 2014, https://openid.net/specs/openid-connect-core-1_0.html.
 
 [SPIFFE] The SPIFFE Project, "SPIFFE: Secure Production Identity Framework for Everyone", https://spiffe.io/.
+
+[OpenTelemetry] CNCF, "OpenTelemetry: High-quality, ubiquitous, and portable telemetry", Cloud Native Computing Foundation, https://opentelemetry.io/.
 
 [Zanzibar] Pang, R., Cachin, C., and others, "Zanzibar: Google's Consistent, Global Authorization System", USENIX ATC 2019, https://research.google/pubs/pub48190/.
 
