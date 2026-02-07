@@ -1,4 +1,5 @@
 ---
+stand_alone: true
 title: Agent Authorization Profile (AAP) for OAuth 2.0
 abbrev: AAP for OAuth 2.0
 docname: draft-aap-oauth-profile-01
@@ -41,20 +42,20 @@ informative:
     target: https://openid.net/specs/openid-connect-core-1_0.html
     title: "OpenID Connect Core 1.0"
     author:
-      org: OpenID Foundation
-    date: 2014
+    - org: OpenID Foundation
+    date: "2014"
   SPIFFE:
     target: https://spiffe.io
     title: "SPIFFE: Secure Production Identity Framework for Everyone"
     author:
-      org: SPIFFE
-    date: 2024
+    - org: SPIFFE
+    date: "2024"
   OpenTelemetry:
     target: https://opentelemetry.io
-    title: OpenTelemetry
+    title: "OpenTelemetry"
     author:
-      org: CNCF
-    date: 2024
+    - org: CNCF
+    date: "2024"
 
 ---
 
@@ -111,29 +112,29 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 # Overview and Relationship to Existing Standards
 
-AAP operates within a standard OAuth architecture consisting of an Authorization Server (AS), Resource Servers (RS), and clients. In AAP, the client is an autonomous AI agent. Token issuance follows OAuth 2.0; typically the Client Credentials Grant {{!RFC6749}} Section 4.4 is used for agent-to-API (M2M) flows. Client (agent) authentication MAY use standard client authentication (client secret, mTLS, etc.) or assertions (e.g. JWT-based client authentication) as per the deployment profile. When the agent is a workload identified by SPIFFE {{?SPIFFE}}, the AS MAY accept SVIDs or derived tokens as part of client authentication; AAP does not define a new flow but MAY integrate with SPIFFE. Tokens issued by the AS include additional structured claims that Resource Servers MUST evaluate before allowing operations.
+AAP operates within a standard OAuth architecture consisting of an Authorization Server (AS), Resource Servers (RS), and clients. In AAP, the client is an autonomous AI agent. Token issuance follows OAuth 2.0; typically the Client Credentials Grant {{!RFC6749}} Section 4.4 is used for agent-to-API (M2M) flows. Client (agent) authentication MAY use standard client authentication (client secret, mTLS, etc.) or assertions (e.g. JWT-based client authentication) as per the deployment profile. When the agent is a workload identified by SPIFFE {{SPIFFE}}, the AS MAY accept SVIDs or derived tokens as part of client authentication; AAP does not define a new flow but MAY integrate with SPIFFE. Tokens issued by the AS include additional structured claims that Resource Servers MUST evaluate before allowing operations.
 
 AAP does not introduce a new identity or protocol scheme; it reuses existing standards and adds a layer of claims and validation rules.
 
-- **OAuth 2.0** — AAP uses the standard OAuth flow (AS, RS, client); the client is the agent; tokens are JWTs with additional AAP claims.
-- **OpenID Connect** — Agent identity MAY be based on OIDC `sub` and `iss`; AAP adds agent-, task-, and capability-specific claims.
-- **mTLS {{!RFC8705}}** — RECOMMENDED for proof-of-possession and for agent authentication toward the AS and RS.
-- **DPoP {{!RFC9449}}** — Alternative to mTLS for proof-of-possession; RECOMMENDED when mTLS is not feasible.
-- **SPIFFE** — OPTIONAL; the agent identifier (e.g. in `agent`) MAY be a SPIFFE ID (`spiffe://trust-domain/...`) when the deployment uses SPIFFE/SPIRE for workload identity.
-- **Token Exchange {{!RFC8693}}** — Used for delegation and for privilege reduction on token re-issuance; the `act` (actor) claim MAY be used in the delegation chain.
+- **OAuth 2.0** -- AAP uses the standard OAuth flow (AS, RS, client); the client is the agent; tokens are JWTs with additional AAP claims.
+- **OpenID Connect** -- Agent identity MAY be based on OIDC `sub` and `iss`; AAP adds agent-, task-, and capability-specific claims.
+- **mTLS {{!RFC8705}}** -- RECOMMENDED for proof-of-possession and for agent authentication toward the AS and RS.
+- **DPoP {{!RFC9449}}** -- Alternative to mTLS for proof-of-possession; RECOMMENDED when mTLS is not feasible.
+- **SPIFFE** -- OPTIONAL; the agent identifier (e.g. in `agent`) MAY be a SPIFFE ID (`spiffe://trust-domain/...`) when the deployment uses SPIFFE/SPIRE for workload identity.
+- **Token Exchange {{!RFC8693}}** -- Used for delegation and for privilege reduction on token re-issuance; the `act` (actor) claim MAY be used in the delegation chain.
 
 # JWT Claim Schema (AAP Profile)
 
-AAP tokens extend standard JWT claims {{!RFC7519}} with the following structured sections. The normative claim names are: `agent`, `task`, `capabilities`, `oversight`, `delegation`, `context`, `audit`. These names are registered in the IANA "JSON Web Token Claims" registry (see {{iana-considerations}}).
+AAP tokens extend standard JWT claims {{!RFC7519}} with the following structured sections. The normative claim names are: `agent`, `task`, `capabilities`, `oversight`, `delegation`, `context`, `audit`. These names are registered in the IANA "JSON Web Token Claims" registry (see [](#iana-considerations)).
 
 **Formal Schema:** Complete JSON Schema definitions for all AAP claims are provided in Appendix A and in the `/schemas` directory of the reference implementation. Implementations SHOULD validate tokens against these schemas to ensure conformance.
 
 ## Claim Semantics
 
-- **Agent identity** — MAY be expressed via OIDC `sub` and `iss`, or via the `agent` claim. The `agent` claim MAY contain, among other fields, a SPIFFE ID (`spiffe://trust-domain/...`) when the deployment uses SPIFFE/SPIRE for workload identity.
-- **Delegation** — The delegation chain MAY use the standard `act` (actor) claim from {{!RFC8693}}. Optionally, `delegation` MAY carry additional metadata (e.g. depth, origin) when more than `act` is required.
-- **Oversight** — Human oversight requirements are expressed as policy metadata in `oversight` (e.g. `requires_approval_for` for certain capability types, or `max_autonomous_scope`). AAP only carries the intent; enforcement is at the Resource Server or orchestrator (e.g. OIDC step-up with `acr_values` or an external approval API), and is out of scope for this profile.
-- **Audit** — Trace identifiers in `audit` SHOULD be compatible with existing trace context propagation (e.g. W3C Trace Context, OpenTelemetry {{?OpenTelemetry}}) so that logs can be correlated with distributed traces without defining a new audit schema.
+- **Agent identity** -- MAY be expressed via OIDC `sub` and `iss`, or via the `agent` claim. The `agent` claim MAY contain, among other fields, a SPIFFE ID (`spiffe://trust-domain/...`) when the deployment uses SPIFFE/SPIRE for workload identity.
+- **Delegation** -- The delegation chain MAY use the standard `act` (actor) claim from {{!RFC8693}}. Optionally, `delegation` MAY carry additional metadata (e.g. depth, origin) when more than `act` is required.
+- **Oversight** -- Human oversight requirements are expressed as policy metadata in `oversight` (e.g. `requires_approval_for` for certain capability types, or `max_autonomous_scope`). AAP only carries the intent; enforcement is at the Resource Server or orchestrator (e.g. OIDC step-up with `acr_values` or an external approval API), and is out of scope for this profile.
+- **Audit** -- Trace identifiers in `audit` SHOULD be compatible with existing trace context propagation (e.g. W3C Trace Context, OpenTelemetry {{OpenTelemetry}}) so that logs can be correlated with distributed traces without defining a new audit schema.
 
 ## Structured Sections (Claim Names)
 
@@ -149,7 +150,7 @@ AAP tokens extend standard JWT claims {{!RFC7519}} with the following structured
 
 The following examples illustrate concrete claim shapes using the normative claim names defined above. Standard JWT claims (`iss`, `sub`, `aud`, `exp`, `iat`, `jti`) are assumed.
 
-**Agent identity** — Identifies the autonomous agent and its execution context.
+**Agent identity** -- Identifies the autonomous agent and its execution context.
 
 ~~~ json
 {
@@ -170,7 +171,7 @@ The following examples illustrate concrete claim shapes using the normative clai
 }
 ~~~
 
-**Task binding** — Binds the token to a specific task and purpose.
+**Task binding** -- Binds the token to a specific task and purpose.
 
 ~~~ json
 {
@@ -184,7 +185,7 @@ The following examples illustrate concrete claim shapes using the normative clai
 }
 ~~~
 
-**Capabilities** — Authorized actions and constraints.
+**Capabilities** -- Authorized actions and constraints.
 
 ~~~ json
 {
@@ -214,18 +215,21 @@ AAP tokens with multiple capabilities and constraints can produce large JWTs. Ma
 - SHOULD use token introspection {{?RFC7662}} or reference tokens when capabilities exceed 10 entries
 - MAY define a `capabilities_ref` claim containing a URI that references an external capability set, reducing token size while maintaining capability semantics
 
-**Oversight** — Human approval requirements for certain actions.
+**Oversight** -- Human approval requirements for certain actions.
 
 ~~~ json
 {
   "oversight": {
-    "requires_human_approval_for": ["cms.publish", "execute.payment"],
+    "requires_human_approval_for": [
+      "cms.publish",
+      "execute.payment"
+    ],
     "approval_reference": "policy-id"
   }
 }
 ~~~
 
-**Delegation** — Depth and chain of delegation.
+**Delegation** -- Depth and chain of delegation.
 
 ~~~ json
 {
@@ -237,7 +241,7 @@ AAP tokens with multiple capabilities and constraints can produce large JWTs. Ma
 }
 ~~~
 
-**Context** — Network, time, and geo restrictions.
+**Context** -- Network, time, and geo restrictions.
 
 ~~~ json
 {
@@ -252,7 +256,7 @@ AAP tokens with multiple capabilities and constraints can produce large JWTs. Ma
 }
 ~~~
 
-**Audit** — Trace and session identifiers for logging.
+**Audit** -- Trace and session identifiers for logging.
 
 ~~~ json
 {
@@ -330,7 +334,10 @@ The following is a single JSON object representing the decoded payload of an AAP
     }
   ],
   "oversight": {
-    "requires_human_approval_for": ["cms.publish", "execute.payment"],
+    "requires_human_approval_for": [
+      "cms.publish",
+      "execute.payment"
+    ],
     "approval_reference": "policy-id"
   },
   "delegation": {
@@ -446,17 +453,30 @@ When multiple constraints of the same type exist (e.g., from capability-level an
 
 ### Domain and Network Constraints
 
-| Constraint Name | Type | Semantics | Example |
-|----------------|------|-----------|---------|
-| `domains_allowed` | array of strings | DNS suffix matching (rightmost matching). `subdomain.example.org` matches `example.org` in allowlist. Resource Server MUST extract domain from request target URL and validate. | `["example.org", "trusted.com"]` |
-| `domains_blocked` | array of strings | Blocklist takes precedence over allowlist. If both are present, blocked domains MUST be checked first. | `["malicious.com"]` |
-| `ip_ranges_allowed` | array of CIDR strings | IP ranges in CIDR notation. Resource Server validates destination IP of request. | `["192.168.1.0/24"]` |
+`domains_allowed` (array of strings):
+: DNS suffix matching (rightmost matching).
+  `subdomain.example.org` matches `example.org`
+  in allowlist. Resource Server MUST extract domain
+  from request target URL and validate.
+  Example: `["example.org", "trusted.example"]`
+
+`domains_blocked` (array of strings):
+: Blocklist takes precedence over allowlist.
+  If both are present, blocked domains MUST be
+  checked first.
+  Example: `["malicious.example"]`
+
+`ip_ranges_allowed` (array of CIDR strings):
+: IP ranges in CIDR notation. Resource Server
+  validates destination IP of request.
+  Example: `["192.168.1.0/24"]`
 
 **Domain Matching Algorithm:**
 
 ~~~ text
 1. Extract domain from request target URL
-2. If domains_blocked is present and domain matches any blocked entry: DENY
+2. If domains_blocked is present and domain
+   matches any blocked entry: DENY
 3. If domains_allowed is present:
    a. Check if domain is exact match or has allowed domain as suffix
    b. If match found: ALLOW (proceed to other constraints)
@@ -626,7 +646,7 @@ AAP assumes environments where autonomous AI agents can access APIs, perform cha
 
 AAP assumes that agents are potentially powerful and highly automated; risk depends not only on who accesses but on purpose, limits, and delegation chain; authorization MUST be contextual, restricted, and auditable. AAP extends OAuth from a broad-permission model toward verifiable operational contracts between organizations, agents, and services.
 
-# Resource Server Validation Rules
+# Resource Server Validation Rules {#resource-server-validation-rules}
 
 This section defines the validation rules that a Resource Server (RS) MUST apply before accepting a request authenticated with an AAP access token. These rules extend standard OAuth 2.x token validation with agent-specific, task-bound, and capability-aware checks.
 
@@ -634,7 +654,7 @@ This section defines the validation rules that a Resource Server (RS) MUST apply
 
 Resource Servers SHOULD validate tokens in the following order to fail fast on inexpensive checks:
 
-1. Extract Bearer token from `Authorization` header
+1. Extract Bearer token {{!RFC6750}} from `Authorization` header
 2. Decode JWT header (reject unknown algorithms)
 3. Verify signature using trusted AS public key
 4. Check `exp` (with clock skew tolerance); check `nbf` if present
@@ -751,7 +771,7 @@ The Resource Server MUST treat the `capabilities` claim as the authoritative sou
 
 The response body SHOULD follow a structure such as `error` and optional `error_description` (e.g. RFC 6749 / RFC 6750 style) without revealing internal authorization details. Avoid including in `error_description` the exact authorization rule that failed, so as not to leak information to an attacker. See Appendix C for the complete error code reference.
 
-# Authorization Server Requirements
+# Authorization Server Requirements {#authorization-server-requirements}
 
 This section defines the requirements that an Authorization Server (AS) MUST satisfy to issue AAP access tokens. These extend standard OAuth 2.0 token issuance with agent-specific binding, capabilities, and audit.
 
@@ -759,7 +779,7 @@ This section defines the requirements that an Authorization Server (AS) MUST sat
 
 - Strongly authenticate agents before issuing tokens (e.g. Client Credentials Grant per RFC 6749 Section 4.4).
 - Support client authentication via client secret, mTLS, or assertions (e.g. JWT-based client authentication) as per the deployment profile.
-- Optionally integrate with SPIFFE SVIDs when the agent is a workload identified by SPIFFE {{?SPIFFE}}.
+- Optionally integrate with SPIFFE SVIDs when the agent is a workload identified by SPIFFE {{SPIFFE}}.
 
 ## Token Binding
 
@@ -833,8 +853,8 @@ During migration, agents SHOULD request tokens with both `scope` and `capabiliti
 
 A conforming implementation satisfies the requirements of this profile for its role (Authorization Server or Resource Server).
 
-- **Authorization Server:** A conforming AS MUST satisfy all requirements in {{authorization-server-requirements}}. It MUST issue tokens that include the AAP claims required by the deployment profile and MUST support proof-of-possession (DPoP and/or mTLS) when the profile requires it. It SHOULD support token exchange {{!RFC8693}} and revocation {{?RFC7009}} {{?RFC7662}} as appropriate.
-- **Resource Server:** A conforming RS MUST apply all rules in {{resource-server-validation-rules}} (standard token validation, proof-of-possession when required, agent identity, task binding, capability enforcement, oversight, delegation chain, contextual restrictions, audit and trace propagation, failure handling). It MUST deny requests when any mandatory validation step fails and MUST NOT leak sensitive authorization details in error responses.
+- **Authorization Server:** A conforming AS MUST satisfy all requirements in [](#authorization-server-requirements). It MUST issue tokens that include the AAP claims required by the deployment profile and MUST support proof-of-possession (DPoP and/or mTLS) when the profile requires it. It SHOULD support token exchange {{!RFC8693}} and revocation {{?RFC7009}} {{?RFC7662}} as appropriate.
+- **Resource Server:** A conforming RS MUST apply all rules in [](#resource-server-validation-rules) (standard token validation, proof-of-possession when required, agent identity, task binding, capability enforcement, oversight, delegation chain, contextual restrictions, audit and trace propagation, failure handling). It MUST deny requests when any mandatory validation step fails and MUST NOT leak sensitive authorization details in error responses.
 - A conforming implementation MAY support additional claims or options provided they do not weaken the requirements above.
 
 # Security Considerations
@@ -1095,7 +1115,7 @@ Resource Servers MUST NOT leak authorization details in error responses:
 ~~~ json
 {
   "error": "aap_constraint_violation",
-  "error_description": "Rate limit exceeded: 51 requests when max is 50"
+  "error_description": "Rate limit exceeded"
 }
 ~~~
 
@@ -1245,7 +1265,7 @@ Implementations SHOULD apply the principle of data minimization (GDPR Article 5(
 
 **Trace ID Rotation (REQUIRED for Cross-Domain):**
 - When token audience changes trust domain, generate new `audit.trace_id`
-- Example: Token for `api.example.com` has `trace_id: abc123`; delegated token for `external-service.org` has `trace_id: xyz789`
+- Example: Token for `api.example.com` has `trace_id: abc123`; delegated token for `external.example` has `trace_id: xyz789`
 - Correlation within single organization preserved; cross-organization correlation prevented
 
 **Domain-Specific Agent IDs:**
@@ -1282,7 +1302,7 @@ Resource Servers MUST NOT leak authorization details in error responses that cou
 **Avoid:**
 - "Agent does not have capability 'delete.data'" (reveals capabilities)
 - "Rate limit: 51 requests, max allowed 50" (reveals constraint values)
-- "Domain blocked: malicious.com is in blocklist" (reveals policy details)
+- "Domain blocked: malicious.example is in blocklist" (reveals policy details)
 - "Task purpose 'research for Alice' does not match action 'publish'" (reveals task details)
 
 **Prefer:**
@@ -1312,7 +1332,7 @@ Server log (not returned to client):
   "error_correlation_id": "err-550e8400-e29b-41d4-a716-446655440000",
   "error": "aap_constraint_violation",
   "constraint_violated": "domains_allowed",
-  "requested_domain": "malicious.com",
+  "requested_domain": "malicious.example",
   "allowed_domains": ["example.org"],
   "agent_id": "agent-researcher-01",
   "task_id": "task-12345",
@@ -1354,10 +1374,12 @@ When an agent acts on behalf of a human user:
 **Example User Notification:**
 
 ~~~ text
-Your request to "research climate change impacts" has been assigned to an AI agent.
+Your request to "research climate change
+impacts" has been assigned to an AI agent.
 
 The agent will be able to:
-- Search web resources from example.org (max 50 requests/hour)
+- Search web resources from example.org
+  (max 50 requests/hour)
 - Create draft articles in the CMS
 
 The agent will NOT be able to:
@@ -1365,7 +1387,8 @@ The agent will NOT be able to:
 - Access data outside example.org
 - Perform actions unrelated to research
 
-You can revoke this authorization at any time in your account settings.
+You can revoke this authorization at any
+time in your account settings.
 ~~~
 
 **Token Transparency:**
@@ -1395,9 +1418,18 @@ Original token (internal):
 
 ~~~ json
 {
-  "agent": {"id": "agent-001", "operator": "org:acme-corp"},
-  "task": {"id": "task-123", "purpose": "research", "created_by": "user:alice"},
-  "capabilities": [{"action": "search.web"}]
+  "agent": {
+    "id": "agent-001",
+    "operator": "org:acme-corp"
+  },
+  "task": {
+    "id": "task-123",
+    "purpose": "research",
+    "created_by": "user:alice"
+  },
+  "capabilities": [
+    {"action": "search.web"}
+  ]
 }
 ~~~
 
@@ -1405,10 +1437,26 @@ Delegated token (external tool):
 
 ~~~ json
 {
-  "agent": {"id": "delegated-from:acme-corp", "operator": "org:acme-corp"},
-  "task": {"id": "task-123-external", "purpose": "research"},
-  "capabilities": [{"action": "search.web", "constraints": {"domains_allowed": ["example.org"]}}],
-  "delegation": {"depth": 1, "chain": ["agent-001", "external-tool"]}
+  "agent": {
+    "id": "delegated-from:acme-corp",
+    "operator": "org:acme-corp"
+  },
+  "task": {
+    "id": "task-123-external",
+    "purpose": "research"
+  },
+  "capabilities": [
+    {
+      "action": "search.web",
+      "constraints": {
+        "domains_allowed": ["example.org"]
+      }
+    }
+  ],
+  "delegation": {
+    "depth": 1,
+    "chain": ["agent-001", "external-tool"]
+  }
 }
 ~~~
 
@@ -1533,13 +1581,25 @@ Traditional OAuth 2.0 scopes {{!RFC6749}} provide coarse-grained authorization t
 - **Delegation chains**: OAuth has no built-in delegation tracking; AAP provides `delegation.depth` and `delegation.chain` for auditable multi-hop authorization
 - **Operational limits**: Scopes are binary (granted/not granted); AAP constraints enable quantitative limits (rate, volume, time windows)
 
-**Comparison Example:**
+**Comparison Examples:**
 
-| Scenario | OAuth Scope Approach | AAP Approach |
-|----------|---------------------|--------------|
-| Research agent web scraping | `scope=read:web` (grants unlimited web access) | `capabilities: [{"action": "search.web", "constraints": {"domains_allowed": ["example.org"], "max_requests_per_hour": 50}}]` |
-| Content creation with approval | `scope=write:cms` (cannot distinguish draft vs. publish) | `capabilities: [{"action": "cms.create_draft"}]` with `oversight: {"requires_human_approval_for": ["cms.publish"]}` |
-| Delegated tool calls | Requires new OAuth flow per delegation | Token Exchange with automatic `delegation.depth` increment and privilege reduction |
+Research agent web scraping:
+
+- OAuth: `scope=read:web` (unlimited web access)
+- AAP: `capabilities` with `action: search.web`,
+  `domains_allowed`, `max_requests_per_hour: 50`
+
+Content creation with approval:
+
+- OAuth: `scope=write:cms` (no draft vs. publish)
+- AAP: `action: cms.create_draft` plus
+  `oversight.requires_human_approval_for: [cms.publish]`
+
+Delegated tool calls:
+
+- OAuth: Requires new OAuth flow per delegation
+- AAP: Token Exchange with automatic
+  `delegation.depth` increment and privilege reduction
 
 **Compatibility:** AAP maintains backward compatibility by optionally including OAuth `scope` claim alongside AAP capabilities.
 
@@ -1646,7 +1706,7 @@ AAP uses the term "capability" from classic capability-based security literature
 
 ## OpenID Connect and Step-Up Authentication
 
-OpenID Connect (OIDC) {{?OIDC}} provides identity claims and authentication strength signaling:
+OpenID Connect (OIDC) {{OIDC}} provides identity claims and authentication strength signaling:
 
 **OIDC Capabilities:**
 - User identity claims (`sub`, `email`, `name`)
@@ -1688,14 +1748,14 @@ Rich Authorization Requests extend OAuth to support complex authorization requir
 
 AAP occupies a unique position in the authorization ecosystem:
 
-| System | Focus | AAP Relationship |
-|--------|-------|------------------|
-| OAuth Scopes | Coarse-grained API access | AAP extends with structured capabilities |
-| Zanzibar/ReBAC | Resource-level permissions | AAP handles agent/task layer; Zanzibar handles resource layer |
-| Cloud IAM | Cloud resource access | AAP is vendor-neutral layer; can integrate with cloud IAM |
-| Service Mesh | Network-level security | AAP adds application-level semantics (task, constraints) |
-| OIDC | User identity | AAP focuses on agent identity; integrates for human oversight |
-| RAR | Authorization requests | AAP defines token structure; RAR can request AAP capabilities |
+| System | AAP Relationship |
+|--------|------------------|
+| OAuth Scopes | Extends with capabilities |
+| Zanzibar/ReBAC | AAP: agent layer; Zanzibar: resource layer |
+| Cloud IAM | Vendor-neutral; integrates with cloud IAM |
+| Service Mesh | Adds app-level semantics (task, constraints) |
+| OIDC | Agent identity; integrates for oversight |
+| RAR | Defines token structure; RAR requests capabilities |
 
 **AAP is designed for scenarios where:**
 - The client is an autonomous AI agent (not a human user)
@@ -1806,7 +1866,8 @@ for schema_file in ['aap-agent.schema.json', 'aap-task.schema.json']:
     with open(f'schemas/{schema_file}') as f:
         store[schema_file] = json.load(f)
 
-resolver = jsonschema.RefResolver.from_schema(token_schema, store=store)
+resolver = jsonschema.RefResolver.from_schema(
+    token_schema, store=store)
 
 # Validate
 try:
@@ -1886,7 +1947,7 @@ grant_type=client_credentials
     {
       "action": "search.web",
       "constraints": {
-        "domains_allowed": ["example.org", "trusted.com"],
+        "domains_allowed": ["example.org", "trusted.example"],
         "max_requests_per_hour": 100
       }
     },
@@ -1933,7 +1994,7 @@ grant_type=urn:ietf:params:oauth:grant-type:token-exchange
 4. Determine reduced capabilities:
    - Keep only `search.web` (remove `cms.create_draft` - not needed by scraper)
    - Tighten constraints: `max_requests_per_hour: 100 -> 50`
-   - Narrow `domains_allowed`: Keep only `example.org` (remove `trusted.com`)
+   - Narrow `domains_allowed`: Keep only `example.org` (remove `trusted.example`)
 5. Reduce token lifetime: `3600s -> 1800s` (50% reduction for delegated token)
 6. Increment delegation depth: `0 -> 1`
 7. Append to delegation chain: `["agent-researcher-01"] -> ["agent-researcher-01", "tool-web-scraper"]`
@@ -1945,11 +2006,11 @@ grant_type=urn:ietf:params:oauth:grant-type:token-exchange
 
 ~~~ json
 {
-  "access_token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
-  "token_type": "Bearer",
-  "expires_in": 1800,
-  "scope": "aap:research.scraping"
+"access_token": "eyJhbGciOiJFUzI1NiJ9...",
+"issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
+"token_type": "Bearer",
+"expires_in": 1800,
+"scope": "aap:research.scraping"
 }
 ~~~
 
@@ -2000,17 +2061,17 @@ grant_type=urn:ietf:params:oauth:grant-type:token-exchange
 
 ## Key Changes in Derived Token
 
-| Field | Original Token | Derived Token | Change Type |
-|-------|----------------|---------------|-------------|
-| `aud` | `https://api.example.com` | `https://tool-scraper.example.com` | Audience changed |
-| `exp` | 1704067200 (3600s) | 1704065400 (1800s) | Lifetime reduced 50% |
-| `jti` | `token-original-123` | `token-delegated-456` | New unique ID |
-| `capabilities` | 2 capabilities | 1 capability | `cms.create_draft` removed |
-| `capabilities[0].constraints.domains_allowed` | `["example.org", "trusted.com"]` | `["example.org"]` | Domain list narrowed |
-| `capabilities[0].constraints.max_requests_per_hour` | 100 | 50 | Rate limit reduced |
-| `delegation.depth` | 0 | 1 | Depth incremented |
-| `delegation.chain` | 1 entry | 2 entries | Tool appended to chain |
-| `delegation.parent_jti` | (absent) | `token-original-123` | Parent link added |
+| Field | Change |
+|-------|--------|
+| `aud` | Changed to tool audience |
+| `exp` | Lifetime reduced 50% |
+| `jti` | New unique ID |
+| `capabilities` | Removed `cms.create_draft` |
+| `domains_allowed` | Narrowed to `example.org` only |
+| `max_requests_per_hour` | Reduced from 100 to 50 |
+| `delegation.depth` | Incremented from 0 to 1 |
+| `delegation.chain` | Tool appended |
+| `delegation.parent_jti` | Parent link added |
 
 ## Privilege Reduction Summary
 
@@ -2018,7 +2079,7 @@ The Authorization Server applied the principle of **least privilege** by:
 
 1. **Capability Removal:** Tool doesn't need `cms.create_draft` (CMS access) for scraping task
 2. **Constraint Tightening:** Reduced rate limit from 100 to 50 requests/hour
-3. **Domain Narrowing:** Removed `trusted.com` from allowed domains (tool only accesses `example.org`)
+3. **Domain Narrowing:** Removed `trusted.example` from allowed domains (tool only accesses `example.org`)
 4. **Lifetime Reduction:** 1800s instead of 3600s (shorter validity window reduces risk)
 
 These reductions ensure that if the tool is compromised or malicious, damage is limited to the specific delegated capabilities and constraints.
@@ -2039,18 +2100,48 @@ This appendix defines error codes specific to AAP authorization failures, extend
 
 ## Error Code Reference
 
-| Error Code | HTTP Status | Description | Example Scenario |
-|-----------|-------------|-------------|------------------|
-| `aap_invalid_capability` | 403 Forbidden | No matching capability for requested action | Agent has `search.web` but requests `cms.publish` |
-| `aap_constraint_violation` | 429 Too Many Requests or 403 Forbidden | Capability constraint violated | 51st request when `max_requests_per_hour: 50` |
-| `aap_task_mismatch` | 403 Forbidden | Request inconsistent with task purpose | Token for "research" task used for data deletion |
-| `aap_approval_required` | 403 Forbidden | Action requires human approval | `cms.publish` in `oversight.requires_human_approval_for` |
-| `aap_excessive_delegation` | 403 Forbidden | Delegation depth exceeded | Token with `depth=3` when `max_depth=2` |
-| `aap_invalid_context` | 403 Forbidden | Context restriction violated | Request outside `time_window` or from blocked region |
-| `aap_domain_not_allowed` | 403 Forbidden | Target domain not in allowlist | Request to `malicious.com` when `domains_allowed: ["example.org"]` |
-| `aap_agent_not_recognized` | 403 Forbidden | Agent identity not recognized by policy | Unknown `agent.id` value |
-| `aap_invalid_delegation_chain` | 403 Forbidden | Delegation chain validation failed | Chain length doesn't match depth, or parent token invalid |
-| `aap_capability_expired` | 403 Forbidden | Time-based capability expired | Request after `time_window.end` |
+`aap_invalid_capability` (403):
+: No matching capability for requested action.
+  Example: Agent has `search.web` but requests `cms.publish`.
+
+`aap_constraint_violation` (429 or 403):
+: Capability constraint violated.
+  Example: 51st request when `max_requests_per_hour` is 50.
+
+`aap_task_mismatch` (403):
+: Request inconsistent with task purpose.
+  Example: Token for "research" task used for data deletion.
+
+`aap_approval_required` (403):
+: Action requires human approval.
+  Example: `cms.publish` listed in
+  `oversight.requires_human_approval_for`.
+
+`aap_excessive_delegation` (403):
+: Delegation depth exceeded.
+  Example: Token with depth=3 when max_depth=2.
+
+`aap_invalid_context` (403):
+: Context restriction violated.
+  Example: Request outside `time_window` or from blocked region.
+
+`aap_domain_not_allowed` (403):
+: Target domain not in allowlist.
+  Example: Request to `malicious.example` when
+  `domains_allowed` is `["example.org"]`.
+
+`aap_agent_not_recognized` (403):
+: Agent identity not recognized by policy.
+  Example: Unknown `agent.id` value.
+
+`aap_invalid_delegation_chain` (403):
+: Delegation chain validation failed.
+  Example: Chain length does not match depth,
+  or parent token is invalid.
+
+`aap_capability_expired` (403):
+: Time-based capability expired.
+  Example: Request after `time_window.end`.
 
 ## Error Response Format
 
@@ -2060,7 +2151,7 @@ AAP error responses SHOULD follow OAuth 2.0 error response format {{!RFC6749}} S
 {
   "error": "aap_constraint_violation",
   "error_description": "The request violates capability constraints",
-  "error_uri": "https://aap-protocol.org/errors#constraint-violation"
+  "error_uri": "https://aap.example/errors#constraint-violation"
 }
 ~~~
 
@@ -2089,7 +2180,7 @@ Content-Type: application/json
 
 {
   "error": "aap_domain_not_allowed",
-  "error_description": "The requested domain is not in the allowed list"
+  "error_description": "Domain not in allowed list"
 }
 ~~~
 
@@ -2102,7 +2193,7 @@ Content-Type: application/json
 {
   "error": "aap_approval_required",
   "error_description": "This action requires human approval",
-  "approval_reference": "https://approval.example.com/request?task_id=task-123"
+  "approval_reference": "https://approve.example.com/task-123"
 }
 ~~~
 
@@ -2290,7 +2381,7 @@ Organizations SHOULD test conformance using:
     {
       "action": "search.web",
       "default_constraints": {
-        "domains_allowed": ["example.org", "trusted.com"],
+        "domains_allowed": ["example.org", "trusted.example"],
         "max_requests_per_hour": 100,
         "max_requests_per_minute": 10
       }
@@ -2313,8 +2404,10 @@ Organizations SHOULD test conformance using:
   },
   "oversight": {
     "level": "approval",
-    "requires_human_approval_for": ["cms.publish", "data.delete"],
-    "approval_reference": "https://approval.acme-corp.com/agent-actions"
+    "requires_human_approval_for": [
+      "cms.publish", "data.delete"
+    ],
+    "approval_reference": "https://approve.example.com/agents"
   },
   "audit": {
     "log_level": "full",
@@ -2353,7 +2446,8 @@ def validate_aap_token(token, request):
         raise TaskMismatch()
 
     # 5. Capability matching
-    matching_cap = find_capability(token.capabilities, request.action)
+    matching_cap = find_capability(
+        token.capabilities, request.action)
     if not matching_cap:
         raise NoMatchingCapability()
 
@@ -2361,34 +2455,42 @@ def validate_aap_token(token, request):
     enforce_constraints(matching_cap.constraints, request, token)
 
     # 7. Oversight
-    if request.action in token.oversight.requires_human_approval_for:
-        raise ApprovalRequired(token.oversight.approval_reference)
+    approvals = token.oversight.requires_human_approval_for
+    if request.action in approvals:
+        ref = token.oversight.approval_reference
+        raise ApprovalRequired(ref)
 
     # 8. Delegation depth
-    if token.delegation.depth > token.delegation.max_depth:
+    depth = token.delegation.depth
+    if depth > token.delegation.max_depth:
         raise ExcessiveDelegation()
 
     # 9. Audit logging
-    log_authorized_request(token.agent.id, token.task.id, request.action)
+    log_authorized_request(
+        token.agent.id, token.task.id,
+        request.action)
 
     return AUTHORIZED
 
 def enforce_constraints(constraints, request, token):
     # Rate limiting
     if 'max_requests_per_hour' in constraints:
-        if get_hourly_count(token.jti) >= constraints.max_requests_per_hour:
+        hourly = constraints.max_requests_per_hour
+        if get_hourly_count(token.jti) >= hourly:
             raise RateLimitExceeded()
         increment_hourly_count(token.jti)
 
     # Domain allowlist
     if 'domains_allowed' in constraints:
         domain = extract_domain(request.target_url)
-        if not domain_matches_allowlist(domain, constraints.domains_allowed):
+        allowed = constraints.domains_allowed
+        if not domain_matches_allowlist(domain, allowed):
             raise DomainNotAllowed()
 
     # Time window
     if 'time_window' in constraints:
-        if not (constraints.time_window.start <= now() < constraints.time_window.end):
+        tw = constraints.time_window
+        if not (tw.start <= now() < tw.end):
             raise OutsideTimeWindow()
 
     # Additional constraints...
@@ -2423,7 +2525,7 @@ The following JWT payload represents a valid AAP token for a research agent with
     {
       "action": "search.web",
       "constraints": {
-        "domains_allowed": ["example.org", "trusted.com"],
+        "domains_allowed": ["example.org", "trusted.example"],
         "max_requests_per_hour": 100
       }
     }
@@ -2438,7 +2540,7 @@ The following JWT payload represents a valid AAP token for a research agent with
 
 **Expected Results:**
 - Request to `search.web` targeting `example.org`: AUTHORIZED
-- Request to `search.web` targeting `malicious.com`: FORBIDDEN (`aap_domain_not_allowed`)
+- Request to `search.web` targeting `malicious.example`: FORBIDDEN (`aap_domain_not_allowed`)
 - Request to `cms.publish`: FORBIDDEN (`aap_invalid_capability`)
 
 ## Invalid Token -- Excessive Delegation
