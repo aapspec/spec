@@ -1,28 +1,75 @@
-# Agent Authorization Profile (AAP) for OAuth 2.0
+---
+title: Agent Authorization Profile (AAP) for OAuth 2.0
+abbrev: AAP for OAuth 2.0
+docname: draft-aap-oauth-profile-00
+category: std
+ipr: trust200902
+submissionType: IETF
+area: Security
+workgroup: OAuth Working Group
+keyword:
+ - OAuth
+ - JWT
+ - AI Agents
+ - Authorization
+ - Machine-to-Machine
 
-**Abstract**
+author:
+ -
+    fullname: Angel Cruz
+    organization: Independent
+    email: bullgram@gmail.com
+
+normative:
+  RFC2119:
+  RFC6749:
+  RFC6750:
+  RFC7519:
+  RFC8174:
+  RFC8693:
+  RFC8705:
+  RFC9449:
+
+informative:
+  RFC5234:
+  RFC7009:
+  RFC7517:
+  RFC7662:
+  RFC7800:
+  OIDC:
+    target: https://openid.net/specs/openid-connect-core-1_0.html
+    title: "OpenID Connect Core 1.0"
+    author:
+      org: OpenID Foundation
+    date: 2014
+  SPIFFE:
+    target: https://spiffe.io
+    title: "SPIFFE: Secure Production Identity Framework for Everyone"
+    author:
+      org: SPIFFE
+    date: 2024
+  OpenTelemetry:
+    target: https://opentelemetry.io
+    title: OpenTelemetry
+    author:
+      org: CNCF
+    date: 2024
+
+--- abstract
 
 This document defines the Agent Authorization Profile (AAP), an authorization profile for OAuth 2.0 and JWT designed for autonomous AI agents. AAP extends existing standards with structured claims and validation rules so that systems can reason about agent identity, task context, operational constraints, delegation chains, and human oversight requirements. It does not introduce a new protocol; it specifies how to use OAuth 2.0, JWT, Token Exchange, and proof-of-possession mechanisms in agent-to-API (M2M) scenarios with context-aware, auditable authorization.
 
-**Status of This Memo**
+--- middle
 
-This Internet-Draft is submitted in full conformance with the provisions of BCP 78 and BCP 79. Internet-Drafts are working documents of the IETF. The list of current Internet-Drafts is at https://datatracker.ietf.org/drafts/current/. Internet-Drafts are draft documents valid for a maximum of six months and may be updated, replaced, or obsoleted by other documents at any time. It is inappropriate to use Internet-Drafts as reference material or to cite them other than as "work in progress."
+## Introduction
 
-**Copyright Notice**
+The Agent Authorization Profile (AAP) is an authorization profile built on OAuth 2.0 {{RFC6749}} and JWT {{RFC7519}}, designed to support secure, auditable, and context-aware authorization for autonomous AI agents. AAP extends existing standards with structured claims and validation rules that allow systems to reason about agent identity, task context, operational constraints, delegation chains, and human oversight requirements.
 
-Copyright (c) 2024 IETF Trust and the persons identified as the document authors. All rights reserved.
-
-
-
-## 1. Introduction
-
-The Agent Authorization Profile (AAP) is an authorization profile built on OAuth 2.0 [RFC6749] and JWT [RFC7519], designed to support secure, auditable, and context-aware authorization for autonomous AI agents. AAP extends existing standards with structured claims and validation rules that allow systems to reason about agent identity, task context, operational constraints, delegation chains, and human oversight requirements.
-
-### 1.1. Problem Statement
+### Problem Statement
 
 Traditional OAuth-based systems were designed primarily for user-to-application-to-API interactions. Autonomous AI agents introduce different characteristics: actions can be autonomous and high frequency; human approval may not be present at execution time; risk depends on task context; and execution may be delegated across multiple tools or agents. Existing scope-based models are not expressive enough to represent these requirements safely and transparently.
 
-### 1.2. Goals
+### Goals
 
 - Provide explicit and verifiable identity for AI agents.
 - Support capability-based authorization with enforceable constraints.
@@ -31,7 +78,7 @@ Traditional OAuth-based systems were designed primarily for user-to-application-
 - Support the expression of human oversight requirements.
 - Remain compatible with OAuth 2.0, JWT, Token Exchange, and proof-of-possession mechanisms.
 
-### 1.3. Non-Goals
+### Non-Goals
 
 - Defining internal AI model behavior.
 - Judging the correctness or ethics of agent decisions.
@@ -40,7 +87,7 @@ Traditional OAuth-based systems were designed primarily for user-to-application-
 
 
 
-## 2. Terminology
+## Terminology
 
 | Term | Definition |
 |||
@@ -53,59 +100,59 @@ Traditional OAuth-based systems were designed primarily for user-to-application-
 | **Resource Server (RS)** | Server that protects resources and validates AAP tokens before allowing access. |
 | **Task** | Unit of work to which the token is bound (identifier, purpose, sensitivity, etc.). |
 
-**AAP token:** An access token issued by an Authorization Server that conforms to this profile and contains AAP claims (e.g. `agent`, `task`, `capabilities`).
+**AAP token:** An access token issued by an Authorization Server that conforms to this profile and contains AAP claims (e.g. `aap_agent`, `aap_task`, `aap_capabilities`).
 
-**Claim:** A name/value pair in a JWT [RFC7519] payload. AAP defines additional claim names and structures for agent identity, task binding, capabilities, oversight, delegation, context, and audit.
-
-
-
-## 3. Conventions Used in This Document
-
-The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all capitals, as shown here. For conformance: "MUST" and "SHALL" indicate mandatory requirements; "SHOULD" and "RECOMMENDED" indicate recommended but not mandatory behavior; "MAY" and "OPTIONAL" indicate optional behavior.
+**Claim:** A name/value pair in a JWT {{RFC7519}} payload. AAP defines additional claim names and structures for agent identity, task binding, capabilities, oversight, delegation, context, and audit.
 
 
 
-## 4. Overview and Relationship to Existing Standards
+## Conventions Used in This Document
 
-AAP operates within a standard OAuth architecture consisting of an Authorization Server (AS), Resource Servers (RS), and clients. In AAP, the client is an autonomous AI agent. Token issuance follows OAuth 2.0; typically the Client Credentials Grant [RFC6749] Section 4.4 is used for agent-to-API (M2M) flows. Client (agent) authentication MAY use standard client authentication (client secret, mTLS, etc.) or assertions (e.g. JWT-based client authentication) as per the deployment profile. When the agent is a workload identified by SPIFFE [SPIFFE], the AS MAY accept SVIDs or derived tokens as part of client authentication; AAP does not define a new flow but MAY integrate with SPIFFE. Tokens issued by the AS include additional structured claims that Resource Servers MUST evaluate before allowing operations.
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14 {{RFC2119}} {{RFC8174}} when, and only when, they appear in all capitals, as shown here. For conformance: "MUST" and "SHALL" indicate mandatory requirements; "SHOULD" and "RECOMMENDED" indicate recommended but not mandatory behavior; "MAY" and "OPTIONAL" indicate optional behavior.
+
+
+
+## Overview and Relationship to Existing Standards
+
+AAP operates within a standard OAuth architecture consisting of an Authorization Server (AS), Resource Servers (RS), and clients. In AAP, the client is an autonomous AI agent. Token issuance follows OAuth 2.0; typically the Client Credentials Grant {{RFC6749}} Section 4.4 is used for agent-to-API (M2M) flows. Client (agent) authentication MAY use standard client authentication (client secret, mTLS, etc.) or assertions (e.g. JWT-based client authentication) as per the deployment profile. When the agent is a workload identified by SPIFFE {{SPIFFE}}, the AS MAY accept SVIDs or derived tokens as part of client authentication; AAP does not define a new flow but MAY integrate with SPIFFE. Tokens issued by the AS include additional structured claims that Resource Servers MUST evaluate before allowing operations.
 
 AAP does not introduce a new identity or protocol scheme; it reuses existing standards and adds a layer of claims and validation rules.
 
 - **OAuth 2.0** — AAP uses the standard OAuth flow (AS, RS, client); the client is the agent; tokens are JWTs with additional AAP claims.
 - **OpenID Connect** — Agent identity MAY be based on OIDC `sub` and `iss`; AAP adds agent-, task-, and capability-specific claims.
-- **mTLS [RFC8705]** — RECOMMENDED for proof-of-possession and for agent authentication toward the AS and RS.
-- **DPoP [RFC9449]** — Alternative to mTLS for proof-of-possession; RECOMMENDED when mTLS is not feasible.
-- **SPIFFE** — OPTIONAL; the agent identifier (e.g. in `agent`) MAY be a SPIFFE ID (`spiffe://trust-domain/...`) when the deployment uses SPIFFE/SPIRE for workload identity.
-- **Token Exchange [RFC8693]** — Used for delegation and for privilege reduction on token re-issuance; the `act` (actor) claim MAY be used in the delegation chain.
+- **mTLS {{RFC8705}}** — RECOMMENDED for proof-of-possession and for agent authentication toward the AS and RS.
+- **DPoP {{RFC9449}}** — Alternative to mTLS for proof-of-possession; RECOMMENDED when mTLS is not feasible.
+- **SPIFFE** — OPTIONAL; the agent identifier (e.g. in `aap_agent`) MAY be a SPIFFE ID (`spiffe://trust-domain/...`) when the deployment uses SPIFFE/SPIRE for workload identity.
+- **Token Exchange {{RFC8693}}** — Used for delegation and for privilege reduction on token re-issuance; the `act` (actor) claim MAY be used in the delegation chain.
 
 
 
-## 5. JWT Claim Schema (AAP Profile)
+## JWT Claim Schema (AAP Profile)
 
-AAP tokens extend standard JWT claims [RFC7519] with the following structured sections. The normative claim names are: `agent`, `task`, `capabilities`, `oversight`, `delegation`, `context`, `audit`. These names are registered in the IANA "JSON Web Token Claims" registry (see Section 14).
+AAP tokens extend standard JWT claims {{RFC7519}} with the following structured sections. To avoid collisions, AAP uses a registered claim namespace; the normative claim names are: `aap_agent`, `aap_task`, `aap_capabilities`, `aap_oversight`, `aap_delegation`, `aap_context`, `aap_audit`.
 
 **Formal Schema:** Complete JSON Schema definitions for all AAP claims are provided in Appendix A and in the `/schemas` directory of the reference implementation. Implementations SHOULD validate tokens against these schemas to ensure conformance.
 
-### 5.1. Claim Semantics
+### Claim Semantics
 
-- **Agent identity** — MAY be expressed via OIDC `sub` and `iss`, or via the `agent` claim. The `agent` claim MAY contain, among other fields, a SPIFFE ID (`spiffe://trust-domain/...`) when the deployment uses SPIFFE/SPIRE for workload identity.
-- **Delegation** — The delegation chain MAY use the standard `act` (actor) claim from [RFC8693]. Optionally, `delegation` MAY carry additional metadata (e.g. depth, origin) when more than `act` is required.
-- **Oversight** — Human oversight requirements are expressed as policy metadata in `oversight` (e.g. `requires_approval_for` for certain capability types, or `max_autonomous_scope`). AAP only carries the intent; enforcement is at the Resource Server or orchestrator (e.g. OIDC step-up with `acr_values` or an external approval API), and is out of scope for this profile.
-- **Audit** — Trace identifiers in `audit` SHOULD be compatible with existing trace context propagation (e.g. W3C Trace Context, OpenTelemetry [OpenTelemetry]) so that logs can be correlated with distributed traces without defining a new audit schema.
+- **Agent identity** — MAY be expressed via OIDC `sub` and `iss`, or via the `aap_agent` claim. The `aap_agent` claim MAY contain, among other fields, a SPIFFE ID (`spiffe://trust-domain/...`) when the deployment uses SPIFFE/SPIRE for workload identity.
+- **Delegation** — The delegation chain MAY use the standard `act` (actor) claim from {{RFC8693}}. Optionally, `aap_delegation` MAY carry additional metadata (e.g. depth, origin) when more than `act` is required.
+- **Oversight** — Human oversight requirements are expressed as policy metadata in `aap_oversight` (e.g. `requires_approval_for` for certain capability types, or `max_autonomous_scope`). AAP only carries the intent; enforcement is at the Resource Server or orchestrator (e.g. OIDC step-up with `acr_values` or an external approval API), and is out of scope for this profile.
+- **Audit** — Trace identifiers in `aap_audit` SHOULD be compatible with existing trace context propagation (e.g. W3C Trace Context, OpenTelemetry {{OpenTelemetry}}) so that logs can be correlated with distributed traces without defining a new audit schema.
 
-### 5.2. Structured Sections (Claim Names)
+### Structured Sections (Claim Names)
 
-- `agent`
-- `task`
-- `capabilities`
-- `oversight`
-- `delegation` (and/or `act` per [RFC8693])
-- `context`
-- `audit`
+- `aap_agent`
+- `aap_task`
+- `aap_capabilities`
+- `aap_oversight`
+- `aap_delegation` (and/or `act` per {{RFC8693}})
+- `aap_context`
+- `aap_audit`
 
-### 5.3. Example Claim Structures
+### Example Claim Structures
 
-The following examples illustrate concrete claim shapes using the normative claim names defined above. Standard JWT claims (`iss`, `sub`, `aud`, `exp`, `iat`, `jti`) are assumed.
+The following examples illustrate concrete claim shapes. In the profile, these may appear under the normative names above (e.g. `aap_agent` / `agent`). Standard JWT claims (`iss`, `sub`, `aud`, `exp`, `iat`, `jti`) are assumed.
 
 **Agent identity** — Identifies the autonomous agent and its execution context.
 
@@ -164,14 +211,6 @@ The following examples illustrate concrete claim shapes using the normative clai
 }
 ```
 
-**Token Size Considerations:**
-
-AAP tokens with multiple capabilities and constraints can produce large JWTs. Many HTTP servers impose limits on the `Authorization` header (nginx default: 8KB, Apache: 8KB, AWS ALB: 16KB). Implementations SHOULD monitor token size and:
-
-- SHOULD warn when a serialized token exceeds 4KB
-- SHOULD use token introspection [RFC7662] or reference tokens when capabilities exceed 10 entries
-- MAY define a `capabilities_ref` claim containing a URI that references an external capability set, reducing token size while maintaining capability semantics
-
 **Oversight** — Human approval requirements for certain actions.
 
 ```json
@@ -222,24 +261,7 @@ AAP tokens with multiple capabilities and constraints can produce large JWTs. Ma
 }
 ```
 
-### 5.3.1. String Length Limits
-
-To prevent abuse and ensure interoperability, implementations SHOULD enforce the following string length limits:
-
-| Claim Field | Min Length | Max Length |
-|---|---|---|
-| `agent.id` | 1 | 128 |
-| `agent.type` | 1 | 64 |
-| `agent.operator` | 1 | 256 |
-| `task.id` | 1 | 128 |
-| `task.purpose` | 1 | 256 |
-| `capabilities[].action` | 1 | 128 |
-| `delegation.chain[]` (each entry) | 1 | 128 |
-| `audit.trace_id` | 1 | 256 |
-
-Authorization Servers MUST reject token requests containing claim values exceeding these limits. Resource Servers SHOULD reject tokens with values exceeding these limits.
-
-### 5.4. Complete Example Payload
+### Complete Example Payload
 
 The following is a single JSON object representing the decoded payload of an AAP access token (claims only; signature and encoding are per RFC 7519). Standard JWT claims and all AAP claims are combined with consistent values (e.g. same `agent.id` and `task.id` referenced in `audit`).
 
@@ -312,15 +334,7 @@ The following is a single JSON object representing the decoded payload of an AAP
 }
 ```
 
-### 5.4.1. Not Before (`nbf`) Claim
-
-The `nbf` (Not Before) claim [RFC7519 Section 4.1.5] MAY be included in AAP tokens. This is useful for:
-- Scheduled tasks that should not start before a given time
-- Tokens pre-issued for future use (e.g., batch operations starting at a specific hour)
-
-If present, Resource Servers MUST reject tokens presented before the `nbf` time minus clock skew tolerance. The same clock skew tolerance applied to `exp` validation (RECOMMENDED: 5 minutes) SHOULD be applied to `nbf` validation.
-
-### 5.5. Action Name Grammar (ABNF)
+### Action Name Grammar (ABNF)
 
 Action names in the `action` field of capabilities MUST conform to the following ABNF grammar [RFC5234]:
 
@@ -361,7 +375,7 @@ Versioning MAY be expressed through namespace components:
 - `api.v1.search.web`
 - `api.v2.search.web`
 
-### 5.6. Standard Constraint Types and Semantics
+### Standard Constraint Types and Semantics
 
 This section defines the semantics of standard constraint types used within capability constraints. Resource Servers MUST enforce these constraints according to the semantics defined here.
 
@@ -375,19 +389,7 @@ When multiple constraints exist within a single capability:
 - **AND semantics**: ALL constraints MUST be satisfied for the action to be authorized
 - If any constraint fails, the entire request MUST be denied
 
-**Empty Constraints:**
-
-When `constraints` is an empty object `{}` or is absent from a capability, NO restrictions are applied to that capability. The capability grants the action without rate limits, domain restrictions, or time windows. An empty `constraints` object and a missing `constraints` key are semantically equivalent.
-
-**Constraint Precedence Rules:**
-
-When multiple constraints of the same type exist (e.g., from capability-level and global policy), the following precedence rules apply:
-- **Numeric constraints** (rate limits, size limits): Use the MORE restrictive (lower) value
-- **Allow-lists** (`domains_allowed`, `allowed_methods`, `allowed_regions`): Use intersection
-- **Block-lists** (`domains_blocked`): Use union
-- **Time windows**: Use intersection of time ranges (narrower window)
-
-#### 5.6.1. Rate Limiting Constraints
+#### Rate Limiting Constraints
 
 | Constraint Name | Type | Semantics | Example |
 |----------------|------|-----------|---------|
@@ -398,11 +400,10 @@ When multiple constraints of the same type exist (e.g., from capability-level an
 **Implementation Notes:**
 - Rate limits are per token (identified by `jti` claim)
 - Resource Servers SHOULD use distributed rate limiting for multi-instance deployments
-- On quota exceeded: Resource Server MUST return HTTP 429 with `aap_constraint_violation` error and a `Retry-After` header
+- On quota exceeded: Resource Server MUST return HTTP 429 with `aap_constraint_violation` error
 - Rate limit state SHOULD be cleared when token expires
-- Rate limit enforcement MUST use strict UTC timestamps. Clock skew tolerance applies only to token expiration (`exp` and `nbf` claims), NOT to rate limit windows
 
-#### 5.6.2. Domain and Network Constraints
+#### Domain and Network Constraints
 
 | Constraint Name | Type | Semantics | Example |
 |----------------|------|-----------|---------|
@@ -421,7 +422,7 @@ When multiple constraints of the same type exist (e.g., from capability-level an
 4. If neither constraint present: proceed to other constraints
 ```
 
-#### 5.6.3. Time-Based Constraints
+#### Time-Based Constraints
 
 | Constraint Name | Type | Semantics | Example |
 |----------------|------|-----------|---------|
@@ -433,13 +434,13 @@ When multiple constraints of the same type exist (e.g., from capability-level an
 - Resource Server MAY tolerate up to 5 minutes of clock skew
 - If request timestamp is outside window beyond skew tolerance: DENY with `aap_constraint_violation`
 
-#### 5.6.4. Delegation Constraints
+#### Delegation Constraints
 
 | Constraint Name | Type | Semantics | Example |
 |----------------|------|-----------|---------|
 | `max_depth` | integer (0-10) | Maximum delegation depth for this capability. 0 means no delegation allowed. Resource Server MUST validate `delegation.depth <= max_depth`. | `2` |
 
-#### 5.6.5. Data and Security Constraints
+#### Data and Security Constraints
 
 | Constraint Name | Type | Semantics | Example |
 |----------------|------|-----------|---------|
@@ -449,9 +450,9 @@ When multiple constraints of the same type exist (e.g., from capability-level an
 | `allowed_methods` | array of strings | HTTP methods allowed. Resource Server MUST validate request method against this list. | `["GET", "POST"]` |
 | `allowed_regions` | array of ISO 3166-1 alpha-2 codes | Geographic regions where requests are allowed. Resource Server validates based on request origin or target resource location. | `["US", "CA", "GB"]` |
 
-### 5.7. Delegation Chain Semantics
+### Delegation Chain Semantics
 
-The `delegation` claim tracks authorization delegation across agents and tools using OAuth Token Exchange [RFC8693].
+The `delegation` claim tracks authorization delegation across agents and tools using OAuth Token Exchange {{RFC8693}}.
 
 **Delegation Depth Calculation:**
 
@@ -462,7 +463,6 @@ depth = n: Token obtained via Token Exchange from depth=n-1 token
 ```
 
 **Authorization Server Requirements:**
-- AS MUST verify that `depth < max_depth` in the parent token BEFORE issuing a derived token with `depth = parent_depth + 1`. That is, the AS MUST reject the Token Exchange request if the parent token's `delegation.depth >= delegation.max_depth`.
 - AS MUST increment `delegation.depth` by 1 on each Token Exchange
 - AS MUST append the current agent/tool identifier to `delegation.chain` array
 - AS MUST copy and preserve `delegation.chain` from parent token
@@ -499,14 +499,6 @@ When issuing a derived token via Token Exchange, the Authorization Server MUST r
 
 The Authorization Server MUST NOT grant capabilities not present in the parent token.
 
-**Token Refresh Strategy:**
-
-AAP tokens, especially delegated tokens with reduced lifetimes, may require refresh before expiration:
-- Agents SHOULD refresh tokens at 80% of the token's lifetime (e.g., at 48 minutes for a 60-minute token)
-- Refresh MUST use the same grant type that obtained the original token (Client Credentials Grant for original tokens)
-- Delegated tokens (obtained via Token Exchange) MUST NOT be refreshed; a new Token Exchange MUST be performed against the parent token
-- If the parent token has expired, the agent MUST obtain a new original token before performing Token Exchange
-
 **Preventing Confused Deputy Attacks:**
 
 To prevent confused deputy attacks where a delegated token is replayed:
@@ -517,19 +509,19 @@ To prevent confused deputy attacks where a delegated token is replayed:
 
 
 
-## 6. Threat Model Summary
+## Threat Model Summary
 
 AAP assumes environments where autonomous AI agents can access APIs, perform chained actions, and operate for extended periods without direct human intervention. The following threats are in scope; for each, agent-specific risks and AAP mitigations are noted.
 
-### 6.1. Agent Impersonation
+### Agent Impersonation
 
 **Threat:** An attacker obtains agent credentials or steals a token and acts as an authorized agent.
 
 **Agent-specific risk:** An agent may have broad permissions and act many times per minute, amplifying impact.
 
-**Mitigations:** Short-lived tokens; Proof-of-Possession (mTLS or DPoP); attested workload identity when possible; strong agent identity claims (`agent.id`, `agent.model`, `runtime.attested`).
+**Mitigations:** Short-lived tokens; Proof-of-Possession (mTLS or DPoP); attested workload identity when possible; strong agent identity claims (`aap_agent` / `agent.id`, `agent.model`, `runtime.attested`).
 
-### 6.2. Capability Escalation
+### Capability Escalation
 
 **Threat:** The agent attempts actions beyond what is authorized (e.g. publish instead of create draft).
 
@@ -537,13 +529,13 @@ AAP assumes environments where autonomous AI agents can access APIs, perform cha
 
 **Mitigations:** Structured capabilities with constraints (not broad scopes); mandatory validation of action + constraints by the Resource Server; task-bound tokens (`task.purpose`); explicit separation between automatic and human-supervised actions.
 
-### 6.3. Purpose Drift
+### Purpose Drift
 
 **Threat:** A token issued for one task is reused for another (e.g. token for “public health research” used for “extracting sensitive data”).
 
 **Mitigations:** Mandatory `task` claim with `purpose`; Resource Servers verify consistency between declared purpose and requested operation; short time windows; reject requests that do not match the declared context.
 
-### 6.4. Malicious or Excessive Delegation
+### Malicious or Excessive Delegation
 
 **Threat:** An agent delegates to tools or sub-agents with more privileges than intended.
 
@@ -551,13 +543,13 @@ AAP assumes environments where autonomous AI agents can access APIs, perform cha
 
 **Mitigations:** OAuth Token Exchange with privilege reduction; `delegation.depth` and `delegation.chain` claims; maximum depth limit (`max_depth`); prohibition of delegation for certain critical capabilities.
 
-### 6.5. Large-Scale Automated Misuse
+### Large-Scale Automated Misuse
 
 **Threat:** An authorized agent performs valid actions at harmful volume (spam, abusive scraping, mass resource creation).
 
 **Mitigations:** Quantitative constraints in capabilities (`max_requests_per_hour`, etc.); enforced by the Resource Server; monitoring and rapid token revocation; mandatory audit with traceability by task and agent.
 
-### 6.6. Prompt / Data Injection
+### Prompt / Data Injection
 
 **Threat:** A third party manipulates external data to induce the agent to use its permissions in unwanted ways.
 
@@ -565,7 +557,7 @@ AAP assumes environments where autonomous AI agents can access APIs, perform cha
 
 **Mitigations:** Tokens bound to specific purpose; restriction of domains, action types, and volumes; separation of read vs. write vs. execute capabilities; human oversight required for high-impact actions.
 
-### 6.7. Lack of Traceability
+### Lack of Traceability
 
 **Threat:** Inability to reconstruct which agent did which action under which authorization.
 
@@ -573,40 +565,23 @@ AAP assumes environments where autonomous AI agents can access APIs, perform cha
 
 **Mitigations:** Audit claims (`audit.trace_id`, `task.id`); mandatory propagation of trace identifiers; inclusion of delegation chain in derived tokens.
 
-### 6.8. Use Outside Intended Environment
+### Use Outside Intended Environment
 
 **Threat:** A valid token is used from a network, region, or environment other than the one authorized.
 
 **Mitigations:** Context claims (`context.network_zone`, time windows); additional validation by the Resource Server; combination with traditional network controls.
 
-### 6.9. Summary
+### Summary
 
 AAP assumes that agents are potentially powerful and highly automated; risk depends not only on who accesses but on purpose, limits, and delegation chain; authorization MUST be contextual, restricted, and auditable. AAP extends OAuth from a broad-permission model toward verifiable operational contracts between organizations, agents, and services.
 
 
 
-## 7. Resource Server Validation Rules
+## Resource Server Validation Rules
 
 This section defines the validation rules that a Resource Server (RS) MUST apply before accepting a request authenticated with an AAP access token. These rules extend standard OAuth 2.x token validation with agent-specific, task-bound, and capability-aware checks.
 
-**Recommended Validation Order:**
-
-Resource Servers SHOULD validate tokens in the following order to fail fast on inexpensive checks:
-
-1. Extract Bearer token from `Authorization` header
-2. Decode JWT header (reject unknown algorithms)
-3. Verify signature using trusted AS public key
-4. Check `exp` (with clock skew tolerance); check `nbf` if present
-5. Check `aud` matches Resource Server identifier
-6. Check `iss` is a trusted Authorization Server
-7. Validate required AAP claims are present (`agent`, `task`, `capabilities`)
-8. Validate `agent` identity (`id`, `type`, `operator`)
-9. Validate `task` binding (`id`, `purpose`)
-10. Validate delegation chain (depth, chain length) if `delegation` present
-11. Match capability to requested action
-12. Enforce capability constraints (rate limits, domains, time windows, etc.)
-
-### 7.1. Standard Token Validation
+### Standard Token Validation
 
 - The RS MUST verify the token signature using trusted Authorization Server keys.
 - The RS MUST verify the token has not expired (`exp` claim) and is within acceptable clock skew.
@@ -614,153 +589,117 @@ Resource Servers SHOULD validate tokens in the following order to fail fast on i
 - The RS MUST verify the issuer (`iss`) is trusted.
 - The RS MUST verify the token has not been revoked if a revocation or introspection mechanism is in place ([RFC7009], [RFC7662] when introspection is used).
 
-**JWKS Caching and Refresh:**
+### Proof of Possession Validation
 
-Resource Servers that obtain AS public keys via JWKS endpoint MUST implement the following caching behavior:
-- SHOULD cache JWKS responses for at least 5 minutes to avoid excessive requests
-- MUST refresh JWKS when encountering an unknown `kid` (key ID) in a token header
-- SHOULD implement exponential backoff for JWKS refresh failures (starting at 1 second, maximum 5 minutes)
-- MUST NOT cache JWKS responses for more than 24 hours
-- SHOULD respect HTTP cache control headers (`Cache-Control`, `Expires`) from the JWKS endpoint response
+For AAP tokens, proof-of-possession is RECOMMENDED; for high-risk profiles it SHOULD be REQUIRED. Implementations MUST support at least one of: DPoP {{RFC9449}} or mTLS client authentication {{RFC8705}}. If mTLS or DPoP is used, the RS MUST validate that the requester demonstrates possession of the key bound to the token. Bearer-only usage is not sufficient for high-risk agent capabilities.
 
-### 7.2. Proof of Possession Validation
+### Agent Identity Validation
 
-For AAP tokens, proof-of-possession is RECOMMENDED; for high-risk profiles it SHOULD be REQUIRED. Implementations MUST support at least one of: DPoP [RFC9449] or mTLS client authentication [RFC8705]. If mTLS or DPoP is used, the RS MUST validate that the requester demonstrates possession of the key bound to the token. Bearer-only usage is not sufficient for high-risk agent capabilities.
-
-### 7.3. Agent Identity Validation
-
-- The RS MUST ensure the `agent` claim is present and well-formed.
+- The RS MUST ensure the `agent` (or `aap_agent`) claim is present and well-formed.
 - The RS MUST verify `agent.id` is recognized or allowed by local policy.
 - If present, the RS MUST evaluate `agent.runtime.attested` according to local trust requirements.
 - If model information is included, the RS MUST ensure the model identifier is not on a deny list.
 
-### 7.4. Task Binding Validation
+### Task Binding Validation
 
-- The RS MUST ensure the `task` claim is present for agent-issued tokens.
+- The RS MUST ensure the `task` (or `aap_task`) claim is present for agent-issued tokens.
 - The RS MUST verify the current request is consistent with `task.purpose`.
 - The RS MUST reject requests that clearly fall outside the declared purpose or data sensitivity.
 - The RS MAY enforce that the token is used only within the declared time window.
 
-**Task Consistency Levels:**
+### Capability Enforcement
 
-Implementations SHOULD apply task consistency validation at the following levels:
-
-1. **Structural (MUST):** `task.id` and `task.purpose` are present and non-empty strings.
-2. **Temporal (SHOULD):** If `task.created_at` is present, it MUST NOT be in the future (beyond clock skew tolerance). If `task.expires_at` is present, the RS MUST reject tokens for tasks past their expiration.
-3. **Semantic (MAY):** The RS MAY implement application-specific logic to validate that the requested action is plausibly related to `task.purpose` (e.g., a `research` purpose should not trigger `data.delete` actions). This level is implementation-specific and not standardized by this profile.
-
-### 7.5. Capability Enforcement
-
-The Resource Server MUST treat the `capabilities` claim as the authoritative source of permitted actions.
+The Resource Server MUST treat the `capabilities` (or `aap_capabilities`) claim as the authoritative source of permitted actions.
 
 - The RS MUST match the requested operation to a `capability.action` entry.
 - The RS MUST enforce all constraints associated with the matching capability.
 - The RS MUST deny the request if no matching capability is found.
 - The RS MUST apply quantitative limits such as rate limits or volume caps defined in constraints.
 
-### 7.6. Oversight Requirement Enforcement
+### Oversight Requirement Enforcement
 
-- If the requested action appears in `oversight.requires_human_approval_for`, the RS MUST NOT complete the action automatically.
+- If the requested action appears in `oversight.requires_human_approval_for` (or equivalent in `aap_oversight`), the RS MUST NOT complete the action automatically.
 - The RS SHOULD return a response indicating that human approval is required.
 - The RS MAY provide a reference to the approval workflow indicated by `approval_reference`.
 
-### 7.7. Delegation Chain Validation
+### Delegation Chain Validation
 
-- If a `delegation` claim is present, the RS MUST verify that `delegation.depth` does not exceed local policy limits.
+- If a `delegation` (or `aap_delegation`) claim is present, the RS MUST verify that `delegation.depth` does not exceed local policy limits.
 - The RS MUST inspect `delegation.chain` to understand upstream actors.
 - The RS SHOULD apply stricter policy if the chain includes untrusted or unknown actors.
 - The RS MUST ensure delegated tokens do not contain broader capabilities than the original agent token.
 
-### 7.8. Contextual Restrictions Enforcement
+### Contextual Restrictions Enforcement
 
 - If `context.network_zone` is present, the RS MUST verify the request originates from an allowed environment when technically feasible.
 - The RS MUST enforce time window constraints if `context.time_window` is present.
 - The RS MUST apply additional checks for geo or network restrictions when provided.
 
-### 7.9. Audit and Trace Propagation
+### Audit and Trace Propagation
 
 - The RS MUST extract `audit.trace_id` and propagate it to internal logs.
 - The RS MUST log `agent.id`, `task.id`, action performed, and authorization decision outcome.
 - The RS MUST ensure logs are protected against tampering according to organizational policy.
 
-### 7.10. Failure Handling
+### Failure Handling
 
 - If any mandatory validation step fails, the RS MUST deny the request.
 - Error responses SHOULD avoid leaking sensitive authorization details.
 - Repeated violations MAY trigger rate limiting or temporary blocking of the agent identity.
 
-**Error responses:** On validation failure, the RS MUST use the following HTTP status codes:
-
-| HTTP Status | Error Code | Condition |
-|---|---|---|
-| 401 Unauthorized | `invalid_token` | Signature invalid, token expired, audience mismatch, issuer untrusted, missing required claims |
-| 403 Forbidden | `aap_invalid_capability` | No matching capability for requested action |
-| 403 Forbidden | `aap_domain_not_allowed` | Domain constraint violation |
-| 403 Forbidden | `aap_capability_expired` | Time window constraint violation |
-| 403 Forbidden | `aap_approval_required` | Human oversight required |
-| 403 Forbidden | `aap_excessive_delegation` | Delegation depth exceeded |
-| 403 Forbidden | `aap_invalid_delegation_chain` | Malformed delegation chain |
-| 403 Forbidden | `aap_task_mismatch` | Request inconsistent with task purpose |
-| 403 Forbidden | `aap_agent_not_recognized` | Agent identity not recognized by policy |
-| 403 Forbidden | `aap_invalid_context` | Context restriction violated |
-| 413 Payload Too Large | `request_too_large` | Payload exceeds `max_request_size` constraint |
-| 429 Too Many Requests | `aap_constraint_violation` | Rate limit constraint exceeded |
-
-**Note:** Rate limit violations MUST return HTTP 429 (Too Many Requests) with a `Retry-After` header, NOT HTTP 403. Other constraint violations (domain, time window) MUST return HTTP 403.
-
-The response body SHOULD follow a structure such as `error` and optional `error_description` (e.g. RFC 6749 / RFC 6750 style) without revealing internal authorization details. Avoid including in `error_description` the exact authorization rule that failed, so as not to leak information to an attacker. See Appendix C for the complete error code reference.
+**Error responses:** On validation failure, the RS SHOULD respond with HTTP 403 Forbidden when the token is valid but the request is not authorized (e.g. capability mismatch, task inconsistency, oversight required). Use HTTP 401 Unauthorized when the token is invalid, expired, or missing (per OAuth 2.0 practice, e.g. [RFC6750]). The response body SHOULD follow a structure such as `error` and optional `error_description` (e.g. RFC 6749 / RFC 6750 style) without revealing internal authorization details—e.g. use generic error codes such as `insufficient_scope` or `invalid_request` rather than describing the specific rule that failed (e.g. avoid “capability X not in token”). Avoid including in `error_description` the exact authorization rule that failed, so as not to leak information to an attacker.
 
 
 
-## 8. Authorization Server Requirements
+## Authorization Server Requirements
 
 This section defines the requirements that an Authorization Server (AS) MUST satisfy to issue AAP access tokens. These extend standard OAuth 2.0 token issuance with agent-specific binding, capabilities, and audit.
 
-### 8.1. Authentication
+### Authentication
 
 - Strongly authenticate agents before issuing tokens (e.g. Client Credentials Grant per RFC 6749 Section 4.4).
 - Support client authentication via client secret, mTLS, or assertions (e.g. JWT-based client authentication) as per the deployment profile.
-- Optionally integrate with SPIFFE SVIDs when the agent is a workload identified by SPIFFE [SPIFFE].
+- Optionally integrate with SPIFFE SVIDs when the agent is a workload identified by SPIFFE {{SPIFFE}}.
 
-### 8.2. Token Binding
+### Token Binding
 
 - Bind issued tokens to a specific task and declared purpose.
 - Include task identifier and purpose in the token so that Resource Servers can verify request consistency.
 
-### 8.3. Capabilities and Constraints
+### Capabilities and Constraints
 
 - Embed in the token only capabilities and constraints authorized by AS policy for the agent and task.
 - Do not issue tokens with broader capabilities than the operator has authorized for the given task.
 
-### 8.4. Token Lifetime
+### Token Lifetime
 
 - Limit token lifetimes according to risk level (e.g. shorter for high-impact or high-frequency use).
 - Apply policy-based rules for expiration and acceptable clock skew.
 
-### 8.5. Token Exchange
+### Token Exchange
 
-- Support token exchange per [RFC8693] when delegation or privilege reduction is required.
-- Enforce reduction of privileges when mapping `subject_token` to `issued_token` (e.g. subset of `capabilities`); mapping rules are AS policy.
+- Support token exchange per {{RFC8693}} when delegation or privilege reduction is required.
+- Enforce reduction of privileges when mapping `subject_token` to `issued_token` (e.g. subset of `aap_capabilities`); mapping rules are AS policy.
 - Use the `act` (actor) claim when building delegation chains as per RFC 8693.
 
-### 8.6. Revocation
+### Revocation
 
 - Support rapid revocation per [RFC7009] (Token Revocation) and/or RFC 7662 (Introspection) as appropriate to the deployment.
 - Ensure Resource Servers can check revocation status when policy requires it (e.g. via introspection endpoint or revocation list).
 
-### 8.7. Proof-of-Possession
+### Proof-of-Possession
 
-- For AAP tokens, support at least one of DPoP [RFC9449] or mTLS [RFC8705] when the profile requires proof-of-possession.
+- For AAP tokens, support at least one of DPoP {{RFC9449}} or mTLS {{RFC8705}} when the profile requires proof-of-possession.
 - Issue tokens that indicate PoP binding when the client has demonstrated key possession during the token request.
 
-### 8.8. Audit
+### Audit
 
 - Record issuance events (agent identity, task, capabilities granted, timestamp) for audit and traceability.
-- Support correlation with trace identifiers included in the token (`audit`) where applicable.
+- Support correlation with trace identifiers included in the token (`aap_audit` / `audit`) where applicable.
 
 
 
-## 9. Example High-Level Flow
+## Example High-Level Flow
 
 1. An operator defines allowed capabilities and policies for an agent.
 2. The agent authenticates with the Authorization Server (e.g. Client Credentials Grant).
@@ -772,45 +711,27 @@ This section defines the requirements that an Authorization Server (AS) MUST sat
 
 
 
-## 10. Extensibility
+## Extensibility
 
 AAP is designed as a profile and allows additional claims or constraints to be defined by industry groups or organizations, provided they do not weaken core validation requirements.
 
 
 
-### 10.1. Backwards Compatibility with OAuth 2.0
-
-AAP is designed as a profile on top of OAuth 2.0 and JWT. The following backwards compatibility properties hold:
-
-- AAP tokens are valid JWTs and MAY be presented to non-AAP Resource Servers. Non-AAP RSes will ignore AAP claims and process only standard JWT claims (`iss`, `sub`, `aud`, `exp`, `iat`).
-- Non-AAP RSes MUST NOT be treated as enforcing AAP constraints. The `scope` claim MAY be included alongside `capabilities` for backwards compatibility with legacy systems.
-- AAP-aware Resource Servers MUST validate AAP claims when present. If a token contains both `scope` and `capabilities`, the RS MUST use `capabilities` as the authoritative source of permissions and MUST ignore `scope` for AAP-governed actions.
-
-### 10.2. Migration Path from Scopes to Capabilities
-
-Organizations adopting AAP from traditional OAuth 2.0 SHOULD follow a phased transition:
-
-1. **Phase 1 (Dual Issuance):** Authorization Server includes both `scope` and `capabilities` in tokens. Legacy RSes use `scope`; AAP-aware RSes use `capabilities`.
-2. **Phase 2 (Capabilities Preferred):** Resource Servers validate `capabilities` when present, fall back to `scope` only for legacy tokens.
-3. **Phase 3 (Capabilities Required):** Remove `scope` from tokens; require `capabilities` for all agent-issued tokens.
-
-During migration, agents SHOULD request tokens with both `scope` and `capabilities` parameters to ensure compatibility with both legacy and AAP-aware Resource Servers.
-
-## 11. Conformance
+## Conformance
 
 A conforming implementation satisfies the requirements of this profile for its role (Authorization Server or Resource Server).
 
-- **Authorization Server:** A conforming AS MUST satisfy all requirements in Section 8 (Authorization Server Requirements). It MUST issue tokens that include the AAP claims required by the deployment profile and MUST support proof-of-possession (DPoP and/or mTLS) when the profile requires it. It SHOULD support token exchange [RFC8693] and revocation [RFC7009] [RFC7662] as appropriate.
+- **Authorization Server:** A conforming AS MUST satisfy all requirements in Section 8 (Authorization Server Requirements). It MUST issue tokens that include the AAP claims required by the deployment profile and MUST support proof-of-possession (DPoP and/or mTLS) when the profile requires it. It SHOULD support token exchange {{RFC8693}} and revocation [RFC7009] [RFC7662] as appropriate.
 - **Resource Server:** A conforming RS MUST apply all rules in Section 7 (Resource Server Validation Rules) (standard token validation, proof-of-possession when required, agent identity, task binding, capability enforcement, oversight, delegation chain, contextual restrictions, audit and trace propagation, failure handling). It MUST deny requests when any mandatory validation step fails and MUST NOT leak sensitive authorization details in error responses.
 - A conforming implementation MAY support additional claims or options provided they do not weaken the requirements above.
 
 
 
-## 12. Security Considerations
+## Security Considerations
 
 This section addresses security considerations specific to AAP beyond those covered in OAuth 2.0 Security Best Current Practice and related standards.
 
-### 12.1. Cryptographic Algorithms and Key Management
+### Cryptographic Algorithms and Key Management
 
 **Token Signing (REQUIRED):**
 
@@ -825,16 +746,16 @@ Authorization Servers MUST sign AAP tokens using asymmetric cryptography. The fo
   - Minimum 2048-bit RSA keys
   - 3072-bit or 4096-bit RSA keys RECOMMENDED for long-lived keys or high-security environments
 
-Authorization Servers MUST NOT use symmetric signing algorithms (HS256, HS384, HS512) for AAP tokens. Symmetric algorithms require sharing the signing key between AS and RS, which violates trust boundaries: any RS that validates tokens could forge new ones. Only asymmetric algorithms (ES256, RS256, EdDSA) are permitted.
+Authorization Servers MUST NOT use symmetric algorithms (HS256) for production AAP tokens, as symmetric keys require sharing between AS and RS, which increases key exposure risk.
 
 **Proof-of-Possession Algorithms:**
 
-When using DPoP [RFC9449]:
+When using DPoP {{RFC9449}}:
 - Agents MUST use ES256 for DPoP proof generation
 - RS256 MAY be supported for legacy clients
 - DPoP proof lifetime SHOULD be short (maximum 60 seconds)
 
-When using mTLS [RFC8705]:
+When using mTLS {{RFC8705}}:
 - TLS 1.3 REQUIRED; TLS 1.2 MAY be supported with restricted cipher suites
 - Cipher suites: ECDHE_ECDSA or ECDHE_RSA with AES_GCM
 - Client certificates MUST be validated against trusted CA or certificate pinning
@@ -860,7 +781,7 @@ When using mTLS [RFC8705]:
 - Agent client credentials (secrets, private keys) SHOULD be stored in secure vaults (e.g., HashiCorp Vault, cloud KMS)
 - Keys MUST NOT be logged, included in error messages, or transmitted over insecure channels
 
-### 12.2. Proof-of-Possession Requirements
+### Proof-of-Possession Requirements
 
 **Risk Assessment:**
 
@@ -908,7 +829,7 @@ For mTLS:
 
 Resource Servers MUST validate the proof matches the `cnf` claim before accepting the token.
 
-### 12.3. Token Lifetime and Revocation
+### Token Lifetime and Revocation
 
 **Token Lifetime Guidelines:**
 
@@ -952,7 +873,7 @@ When a token is revoked:
 - This is achieved by tracking `parent_jti` linkage
 - Token family revocation enhances security but requires AS to maintain token graph
 
-### 12.4. Constraint Enforcement
+### Constraint Enforcement
 
 **Server-Side Enforcement (REQUIRED):**
 
@@ -973,11 +894,11 @@ When a constraint is violated, Resource Server MUST:
 - Log violation event with `agent.id`, `task.id`, violated constraint
 - NOT return details of constraint values in error response (privacy)
 
-### 12.5. Delegation Security
+### Delegation Security
 
 **Privilege Reduction (REQUIRED):**
 
-When issuing derived tokens via Token Exchange [RFC8693], the Authorization Server MUST reduce privileges by one or more of:
+When issuing derived tokens via Token Exchange {{RFC8693}}, the Authorization Server MUST reduce privileges by one or more of:
 - **Capability removal**: Subset of parent capabilities only
 - **Constraint tightening**: Lower rate limits, narrower domain lists, shorter time windows
 - **Lifetime reduction**: Shorter `exp` time than parent token
@@ -1000,7 +921,7 @@ To prevent confused deputy attacks where delegation chains are replayed:
 - AS MUST validate parent token exists and is not expired/revoked before issuing derived token
 - Delegation chain MUST be immutable (copied and appended, never modified by client)
 
-### 12.6. Human Oversight Enforcement
+### Human Oversight Enforcement
 
 **Approval Workflow Security:**
 
@@ -1016,7 +937,7 @@ When `oversight.requires_human_approval_for` includes an action:
 - Agent cannot bypass approval by modifying request headers
 - Resource Server MUST validate oversight claim before execution
 
-### 12.7. Authorization Server Security
+### Authorization Server Security
 
 **AS as Critical Component:**
 
@@ -1038,7 +959,7 @@ Authorization Server SHOULD monitor and alert on:
 - Tokens issued to unknown agents (possible credential theft)
 - Issuance outside normal business hours (possible unauthorized access)
 
-### 12.8. Resource Server Security
+### Resource Server Security
 
 **Input Validation:**
 
@@ -1071,43 +992,7 @@ Resource Servers MUST NOT leak authorization details in error responses:
 
 Detailed violation information SHOULD be logged server-side for audit, not returned to client.
 
-### 12.9. Token Caching Security
-
-Agents and intermediaries MAY cache tokens for reuse within their lifetime. The following security guidance applies:
-
-- Tokens SHOULD be stored in memory only and MUST NOT be persisted to disk in plaintext
-- Cached tokens SHOULD be evicted before expiration (at 80% of remaining lifetime) to avoid using tokens that may expire during a request
-- Token caches MUST be cleared on process termination
-- Delegated tokens MUST NOT be cached longer than their parent token's expiration
-- Agents MUST NOT share cached tokens across different task contexts
-
-### 12.10. Key Compromise Incident Response
-
-When an AS signing key is compromised or suspected of compromise, the following incident response procedure SHOULD be followed:
-
-1. **Immediate rotation:** Generate and deploy a new key pair. Update the JWKS endpoint to include the new key.
-2. **JWKS update:** Publish updated JWKS with the new key. The compromised `kid` SHOULD be removed from the JWKS endpoint or marked with a revocation indicator.
-3. **RS propagation:** All Resource Servers MUST refresh their JWKS cache within the cache TTL. RSes SHOULD treat tokens signed with the compromised `kid` as invalid.
-4. **Token invalidation:** All outstanding tokens signed with the compromised key SHOULD be considered invalid. If token introspection is in use, the AS MUST return `active: false` for tokens signed with the compromised key.
-5. **Agent notification:** Agents MUST request new tokens after key rotation. The AS SHOULD reject new token requests until the rotation is complete.
-
-Organizations SHOULD have a documented key compromise response plan and SHOULD test it periodically.
-
-### 12.11. Denial-of-Service Prevention
-
-AAP token validation is computationally more expensive than standard OAuth due to larger JWT payloads, multiple validation steps (agent, task, delegation, capabilities), and stateful constraint enforcement (rate limiting).
-
-Resource Servers SHOULD implement the following DoS mitigations:
-- Reject tokens larger than 16KB before parsing (pre-validation size limit)
-- Rate-limit the number of token validation attempts per source IP
-- Cache validation results for recently-seen JTIs (with TTL equal to remaining token lifetime) to avoid re-validating the same token
-- Implement circuit breakers for JWKS endpoint requests to prevent cascading failures when the AS is unavailable
-
-Authorization Servers SHOULD:
-- Rate-limit the token endpoint itself (per client, per IP)
-- Monitor and alert on anomalous token issuance patterns (sudden volume spikes, unusual capability combinations)
-
-### 12.12. Additional Security Considerations
+### Additional Security Considerations
 
 **Token Logging:**
 
@@ -1133,11 +1018,11 @@ However, AAP alone is not sufficient for compliance; organizational policies, pr
 
 
 
-## 13. Privacy Considerations
+## Privacy Considerations
 
 AAP tokens and audit logs may contain information that could identify agents, organizations, individuals, or sensitive operational details. This section provides guidance on privacy protection in AAP implementations.
 
-### 13.1. Personal Data in AAP Tokens
+### Personal Data in AAP Tokens
 
 AAP tokens MAY contain personal data under GDPR, CCPA, and similar privacy regulations:
 
@@ -1154,7 +1039,7 @@ AAP tokens MAY contain personal data under GDPR, CCPA, and similar privacy regul
 - Resource Server operators are data processors when validating tokens
 - Delegation across organizations may create complex controller/processor relationships
 
-### 13.2. Data Minimization Principles
+### Data Minimization Principles
 
 Implementations SHOULD apply the principle of data minimization [GDPR Article 5(1)(c)]:
 
@@ -1173,7 +1058,7 @@ Implementations SHOULD apply the principle of data minimization [GDPR Article 5(
 - Don't include `task.metadata` unless necessary for constraint enforcement
 - Don't include `context.location.ip_address` unless geofencing is required
 
-### 13.3. Retention and Lifecycle
+### Retention and Lifecycle
 
 **Token Retention:**
 - Tokens expire per `exp` claim (typically minutes to hours)
@@ -1195,7 +1080,7 @@ Implementations SHOULD apply the principle of data minimization [GDPR Article 5(
 - Consider using pseudonymous IDs that can be de-linked from personal data
 - Audit logs may be exempt from erasure if required for legal compliance; consult legal counsel
 
-### 13.4. Cross-Domain Correlation
+### Cross-Domain Correlation
 
 **Threat:** Malicious Resource Servers in different organizations could correlate requests across services using stable identifiers in AAP tokens (e.g., `audit.trace_id`, `agent.id`).
 
@@ -1235,7 +1120,7 @@ This signals the intended correlation boundary:
 - `agent`: Trace ID stable for agent lifetime (enables long-term correlation; privacy-risky)
 - `domain`: Trace ID unique per trust domain (rotated when crossing domains)
 
-### 13.5. Privacy-Preserving Error Messages
+### Privacy-Preserving Error Messages
 
 Resource Servers MUST NOT leak authorization details in error responses that could enable privacy violations or capability profiling.
 
@@ -1278,7 +1163,7 @@ Server log (not returned to client):
 }
 ```
 
-### 13.6. Anonymization and Pseudonymization
+### Anonymization and Pseudonymization
 
 **Pseudonymization (GDPR Article 4(5)):**
 
@@ -1300,7 +1185,7 @@ For audit logs past retention period:
 - Remove `task.created_by` entirely
 - Aggregate statistics (e.g., "1000 requests by research agents") instead of individual records
 
-### 13.7. Consent and Transparency
+### Consent and Transparency
 
 **Agent Operator Transparency:**
 
@@ -1332,7 +1217,7 @@ For compliance with transparency requirements (GDPR Article 13-14):
 - Organizations SHOULD inform users when their actions trigger agent authorization
 - Organizations SHOULD provide access to audit logs (subject to security and legal constraints)
 
-### 13.8. Third-Party Tool Privacy
+### Third-Party Tool Privacy
 
 When delegating to third-party tools (external organizations):
 
@@ -1368,7 +1253,7 @@ Delegated token (external tool):
 }
 ```
 
-### 13.9. Privacy by Design Recommendations
+### Privacy by Design Recommendations
 
 **For Authorization Server Implementations:**
 
@@ -1391,7 +1276,7 @@ Delegated token (external tool):
 3. Rotate trace IDs when crossing trust boundaries
 4. Discard tokens immediately upon expiration (don't cache expired tokens)
 
-### 13.10. Regulatory Compliance Guidance
+### Regulatory Compliance Guidance
 
 **GDPR Compliance:**
 - AAP supports GDPR principles: purpose limitation (task binding), data minimization (constrained capabilities), accountability (audit logs)
@@ -1411,77 +1296,19 @@ Delegated token (external tool):
 
 
 
-## 14. IANA Considerations
+## IANA Considerations
 
-This document registers the following claim names in the IANA "JSON Web Token Claims" registry established by [RFC7519].
-
-### 14.1. JWT Claims Registration
-
-The following claims are registered per the "Specification Required" policy defined in [RFC7519] Section 10.1:
-
-| Claim Name | Claim Description | Change Controller | Reference |
-|---|---|---|---|
-| `agent` | Agent identity and metadata | IETF | [this document] Section 5.1 |
-| `task` | Task binding information | IETF | [this document] Section 5.2 |
-| `capabilities` | Granted capabilities with constraints | IETF | [this document] Section 5.3 |
-| `delegation` | Delegation chain tracking | IETF | [this document] Section 5.4 |
-| `oversight` | Human oversight requirements | IETF | [this document] Section 5.8 |
-| `audit` | Audit and tracing metadata | IETF | [this document] Section 5.9 |
-| `context` | Execution context restrictions | IETF | [this document] Section 5.10 |
-
-### 14.2. OAuth Error Code Registration
-
-This document registers the following error codes in the OAuth Extensions Error Registry:
-
-| Error Code | Usage Location | Protocol Extension | Reference |
-|---|---|---|---|
-| `aap_invalid_capability` | Resource access error response | AAP | [this document] Appendix C |
-| `aap_constraint_violation` | Resource access error response | AAP | [this document] Appendix C |
-| `aap_approval_required` | Resource access error response | AAP | [this document] Appendix C |
-| `aap_excessive_delegation` | Resource access error response | AAP | [this document] Appendix C |
-| `aap_domain_not_allowed` | Resource access error response | AAP | [this document] Appendix C |
-| `aap_task_mismatch` | Resource access error response | AAP | [this document] Appendix C |
-| `aap_agent_not_recognized` | Resource access error response | AAP | [this document] Appendix C |
-| `aap_invalid_delegation_chain` | Resource access error response | AAP | [this document] Appendix C |
-| `aap_capability_expired` | Resource access error response | AAP | [this document] Appendix C |
-| `aap_invalid_context` | Resource access error response | AAP | [this document] Appendix C |
+This document has no IANA actions. If in the future the AAP claim names (`aap_agent`, `aap_task`, `aap_capabilities`, `aap_oversight`, `aap_delegation`, `aap_context`, `aap_audit`) are registered in the "JSON Web Token Claims Registry" as defined in {{RFC7519}}, the required registration procedure would be followed.
 
 
 
-## 15. Implementation Status
-
-This section records the status of known implementations of the protocol defined by this specification at the time of posting of this Internet-Draft, and is based on a proposal described in [RFC7942].
-
-### 15.1. Reference Implementation
-
-- **Organization:** AAP Project
-- **Implementation:** Python reference implementation (Authorization Server + Resource Server)
-- **Description:** Complete implementation of AAP token issuance, Token Exchange, and Resource Server validation with constraint enforcement
-- **Maturity:** Alpha
-- **Coverage:** All MUST-level requirements in Sections 7 and 8
-- **Licensing:** Apache 2.0
-- **Contact:** See project repository
-- **URL:** See `/reference-impl/` in the project repository
-
-### 15.2. Test Vectors
-
-A comprehensive test vector suite is available for interoperability testing:
-- 15 test vector files covering valid tokens, invalid tokens, constraint violations, and edge cases
-- 80+ individual test cases
-- Coverage of all specification sections referenced in Sections 5, 7, and 8
-
-Implementations SHOULD pass all test vectors in `valid-tokens/` and `edge-cases/` categories. Implementations MUST correctly reject all test vectors in `invalid-tokens/` and `constraint-violations/` categories with the specified error codes.
-
-
-
-## 16. Related Work and Comparison
-
+## Related Work and Comparison
 
 This section positions AAP within the broader ecosystem of authorization, access control, and identity systems. AAP is designed to complement and extend existing standards rather than replace them.
 
-### 16.1. OAuth 2.0 Scopes
+### OAuth 2.0 Scopes
 
-Traditional OAuth 2.0 scopes [RFC6749] provide coarse-grained authorization through simple string tokens (e.g., `read:articles`, `write:cms`). While effective for user-delegated access, scopes have limitations for autonomous agent scenarios:
+Traditional OAuth 2.0 scopes {{RFC6749}} provide coarse-grained authorization through simple string tokens (e.g., `read:articles`, `write:cms`). While effective for user-delegated access, scopes have limitations for autonomous agent scenarios:
 
 **OAuth Scopes Characteristics:**
 - Simple string-based permissions
@@ -1506,7 +1333,7 @@ Traditional OAuth 2.0 scopes [RFC6749] provide coarse-grained authorization thro
 
 **Compatibility:** AAP maintains backward compatibility by optionally including OAuth `scope` claim alongside AAP capabilities.
 
-### 16.2. Fine-Grained Authorization Systems (Zanzibar, ReBAC)
+### Fine-Grained Authorization Systems (Zanzibar, ReBAC)
 
 Google Zanzibar and Relation-Based Access Control (ReBAC) systems focus on resource-level permissions with global consistency ("user X can read document Y based on relationship graph").
 
@@ -1534,7 +1361,7 @@ Google Zanzibar and Relation-Based Access Control (ReBAC) systems focus on resou
 4. Both checks must pass for request to succeed
 ```
 
-### 16.3. Cloud Identity and Access Management
+### Cloud Identity and Access Management
 
 Major cloud providers offer identity and temporary credential systems:
 
@@ -1560,7 +1387,7 @@ Major cloud providers offer identity and temporary credential systems:
 - Agent exchanges AAP token for cloud-specific credentials (AWS STS, GCP token)
 - Cloud IAM enforces resource-level permissions
 
-### 16.4. Service Mesh Authorization (Istio, Linkerd)
+### Service Mesh Authorization (Istio, Linkerd)
 
 Service meshes provide network-level security with mutual TLS and Layer 7 policies:
 
@@ -1588,7 +1415,7 @@ Service meshes provide network-level security with mutual TLS and Layer 7 polici
 - Service mesh enforces network policy ("can agent reach API?")
 - AAP enforces business logic ("can agent perform this action with these constraints?")
 
-### 16.5. Capability-Based Security
+### Capability-Based Security
 
 AAP uses the term "capability" from classic capability-based security literature (Dennis & Van Horn 1966, Levy 1984):
 
@@ -1606,7 +1433,7 @@ AAP uses the term "capability" from classic capability-based security literature
 
 **Key Difference:** AAP is not a pure object-capability system. It uses centralized issuance (AS) and validation (RS) rather than distributed capability passing. However, AAP borrows the principle of **least authority**: each capability explicitly states what is allowed and under what constraints, rather than checking ambient permissions.
 
-### 16.6. OpenID Connect and Step-Up Authentication
+### OpenID Connect and Step-Up Authentication
 
 OpenID Connect (OIDC) [OIDC] provides identity claims and authentication strength signaling:
 
@@ -1629,7 +1456,7 @@ OpenID Connect (OIDC) [OIDC] provides identity claims and authentication strengt
 - Resource Server can request user approval via OIDC interaction, using `acr_values` for higher assurance
 - Human supervisor identified in `oversight.supervisor` can authenticate via OIDC
 
-### 16.7. OAuth 2.0 Rich Authorization Requests (RAR)
+### OAuth 2.0 Rich Authorization Requests (RAR)
 
 Rich Authorization Requests [draft-ietf-oauth-rar] extend OAuth to support complex authorization requirements beyond simple scopes.
 
@@ -1646,7 +1473,7 @@ Rich Authorization Requests [draft-ietf-oauth-rar] extend OAuth to support compl
 
 **Complementary:** RAR can be used to request AAP capabilities. Client sends RAR with desired capabilities; AS issues AAP token with granted capabilities.
 
-### 16.8. Summary: Where AAP Fits
+### Summary: Where AAP Fits
 
 AAP occupies a unique position in the authorization ecosystem:
 
@@ -1669,75 +1496,10 @@ AAP occupies a unique position in the authorization ecosystem:
 
 
 
-## 17. References
 
-### 17.1. Normative References
+--- back
 
-[RFC2119] Bradner, S., "Key words for use in RFCs to Indicate Requirement Levels", BCP 14, RFC 2119, DOI 10.17487/RFC2119, March 1997, https://www.rfc-editor.org/info/rfc2119.
-
-[RFC6749] Hardt, D., Ed., "The OAuth 2.0 Authorization Framework", RFC 6749, DOI 10.17487/RFC6749, October 2012, https://www.rfc-editor.org/info/rfc6749.
-
-[RFC7519] Jones, M., Bradley, J., and N. Sakimura, "JSON Web Token (JWT)", RFC 7519, DOI 10.17487/RFC7519, May 2015, https://www.rfc-editor.org/info/rfc7519.
-
-[RFC8174] Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174, May 2017, https://www.rfc-editor.org/info/rfc8174.
-
-[RFC8693] Campbell, B., Bradley, J., Sakimura, N., and T. Lodderstedt, "OAuth 2.0 Token Exchange", RFC 8693, DOI 10.17487/RFC8693, January 2020, https://www.rfc-editor.org/info/rfc8693.
-
-[RFC8705] Campbell, B., Bradley, J., Sakimura, N., and T. Lodderstedt, "OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens", RFC 8705, DOI 10.17487/RFC8705, February 2020, https://www.rfc-editor.org/info/rfc8705.
-
-[RFC9449] Fett, D., Campbell, B., and B. Campbell, "OAuth 2.0 Demonstrating Proof-of-Possession (DPoP)", RFC 9449, DOI 10.17487/RFC9449, September 2024, https://www.rfc-editor.org/info/rfc9449.
-
-[RFC7009] Lodderstedt, T., Ed., and D. Dick, "OAuth 2.0 Token Revocation", RFC 7009, DOI 10.17487/RFC7009, August 2013, https://www.rfc-editor.org/info/rfc7009.
-
-[RFC7662] Richer, J., Ed., "OAuth 2.0 Token Introspection", RFC 7662, DOI 10.17487/RFC7662, October 2015, https://www.rfc-editor.org/info/rfc7662.
-
-[RFC6750] Jones, M. and D. Hardt, "The OAuth 2.0 Authorization Framework: Bearer Token Usage", RFC 6750, DOI 10.17487/RFC6750, October 2012, https://www.rfc-editor.org/info/rfc6750.
-
-[RFC5234] Crocker, D. and P. Overell, "Augmented BNF for Syntax Specifications: ABNF", RFC 5234, DOI 10.17487/RFC5234, January 2008, https://www.rfc-editor.org/info/rfc5234.
-
-### 17.2. Informative References
-
-[RFC7517] Jones, M., "JSON Web Key (JWK)", RFC 7517, DOI 10.17487/RFC7517, May 2015, https://www.rfc-editor.org/info/rfc7517.
-
-[RFC7800] Jones, M., Bradley, J., and H. Tschofenig, "Proof-of-Possession Key Semantics for JSON Web Tokens (JWTs)", RFC 7800, DOI 10.17487/RFC7800, April 2016, https://www.rfc-editor.org/info/rfc7800.
-
-[OIDC] Sakimura, N., Bradley, J., Jones, M., de Medeiros, B., and C. Mortimore, "OpenID Connect Core 1.0", The OpenID Foundation, February 2014, https://openid.net/specs/openid-connect-core-1_0.html.
-
-[SPIFFE] The SPIFFE Project, "SPIFFE: Secure Production Identity Framework for Everyone", https://spiffe.io/.
-
-[OpenTelemetry] CNCF, "OpenTelemetry: High-quality, ubiquitous, and portable telemetry", Cloud Native Computing Foundation, https://opentelemetry.io/.
-
-[Zanzibar] Pang, R., Cachin, C., and others, "Zanzibar: Google's Consistent, Global Authorization System", USENIX ATC 2019, https://research.google/pubs/pub48190/.
-
-[OAuth-RAR] Lodderstedt, T., Richer, J., and B. Campbell, "OAuth 2.0 Rich Authorization Requests", draft-ietf-oauth-rar, https://datatracker.ietf.org/doc/html/draft-ietf-oauth-rar.
-
-[RFC7942] Sheffer, Y. and A. Farrel, "Improving Awareness of Running Code: The Implementation Status Section", BCP 205, RFC 7942, DOI 10.17487/RFC7942, July 2016, https://www.rfc-editor.org/info/rfc7942.
-
-[Capabilities] Dennis, J.B. and Van Horn, E.C., "Programming Semantics for Multiprogrammed Computations", Communications of the ACM, Vol. 9, No. 3, March 1966.
-
-
-
-## Authors' Addresses
-
-**Editor:**
-[Your Name]
-[Your Organization]
-Email: [your-email@example.com]
-
-**Contributors:**
-Additional contributors to be listed upon Working Group adoption.
-
-**Document History:**
-- draft-aap-oauth-profile-00: Initial submission (2025-02-01)
-- Expires: 2025-08-01 (6 months from submission)
-
-
-
----
-
-# Appendices
-
-## Appendix A: Complete JSON Schema Reference
+#  A: Complete JSON Schema Reference
 
 This appendix provides links to the complete JSON Schema definitions for AAP tokens. These schemas are normative and MUST be used for validation in conforming implementations.
 
@@ -1858,9 +1620,9 @@ When the AAP specification is updated:
 
 
 
-## Appendix B: Token Exchange Flow Example
+#  B: Token Exchange Flow Example
 
-This appendix provides a detailed example of OAuth 2.0 Token Exchange [RFC8693] for AAP delegation scenarios.
+This appendix provides a detailed example of OAuth 2.0 Token Exchange {{RFC8693}} for AAP delegation scenarios.
 
 ### B.1. Scenario
 
@@ -2069,7 +1831,7 @@ If Tool B needs to delegate to another tool (e.g., HTML parser), it can repeat t
 
 
 
-## Appendix C: AAP-Specific Error Codes
+#  C: AAP-Specific Error Codes
 
 This appendix defines error codes specific to AAP authorization failures, extending the OAuth 2.0 error code registry.
 
@@ -2156,7 +1918,7 @@ Agents MUST NOT attempt to bypass errors by modifying tokens (signature validati
 
 
 
-## Appendix D: Conformance Checklist
+#  D: Conformance Checklist
 
 This appendix provides implementation checklists for Authorization Servers and Resource Servers to verify AAP conformance.
 
@@ -2168,12 +1930,12 @@ An AAP-conformant Authorization Server MUST implement the following:
 - [ ] Supports OAuth 2.0 Client Credentials Grant [RFC6749 Section 4.4]
 - [ ] Issues JWTs with all required AAP claims: `agent`, `task`, `capabilities`
 - [ ] Validates capabilities against operator policy before issuance
-- [ ] Supports at least one proof-of-possession mechanism (DPoP [RFC9449] or mTLS [RFC8705])
+- [ ] Supports at least one proof-of-possession mechanism (DPoP {{RFC9449}} or mTLS {{RFC8705}})
 - [ ] Signs tokens with ES256 or RS256 (not HS256)
 - [ ] Issues tokens with unique `jti` (JWT ID) for each token
 
 **Delegation (Token Exchange):**
-- [ ] Supports OAuth 2.0 Token Exchange [RFC8693]
+- [ ] Supports OAuth 2.0 Token Exchange {{RFC8693}}
 - [ ] Implements privilege reduction on delegation (capability subset, constraint tightening, lifetime reduction)
 - [ ] Increments `delegation.depth` on each Token Exchange
 - [ ] Appends tool/agent ID to `delegation.chain`
@@ -2294,7 +2056,7 @@ Organizations SHOULD test conformance using:
 
 
 
-## Appendix E: Implementation Examples
+#  E: Implementation Examples
 
 ### E.1. Example Policy Configuration
 
@@ -2415,102 +2177,3 @@ def enforce_constraints(constraints, request, token):
 
     # Additional constraints...
 ```
-
----
-
-## Appendix F: Test Vectors
-
-This appendix provides canonical test vectors for validating AAP implementations. A complete test vector suite is maintained separately (see Section 15.2). The examples below are normative and illustrate key validation scenarios.
-
-### F.1. Valid Token — Basic Research Agent
-
-The following JWT payload represents a valid AAP token for a research agent with web search capability:
-
-```json
-{
-  "iss": "https://as.example.com",
-  "sub": "agent-researcher-01",
-  "aud": "https://api.example.com",
-  "exp": 1735689600,
-  "iat": 1735686000,
-  "jti": "tv-valid-basic-001",
-  "agent": {
-    "id": "agent-researcher-01",
-    "type": "llm-autonomous",
-    "operator": "org:acme-corp"
-  },
-  "task": {
-    "id": "task-research-001",
-    "purpose": "research"
-  },
-  "capabilities": [
-    {
-      "action": "search.web",
-      "constraints": {
-        "domains_allowed": ["example.org", "trusted.com"],
-        "max_requests_per_hour": 100
-      }
-    }
-  ],
-  "delegation": {
-    "depth": 0,
-    "max_depth": 2,
-    "chain": ["agent-researcher-01"]
-  }
-}
-```
-
-**Expected Results:**
-- Request to `search.web` targeting `example.org`: AUTHORIZED
-- Request to `search.web` targeting `malicious.com`: FORBIDDEN (`aap_domain_not_allowed`)
-- Request to `cms.publish`: FORBIDDEN (`aap_invalid_capability`)
-
-### F.2. Invalid Token — Excessive Delegation
-
-```json
-{
-  "iss": "https://as.example.com",
-  "sub": "agent-researcher-01",
-  "aud": "https://api.example.com",
-  "exp": 1735689600,
-  "iat": 1735686000,
-  "jti": "tv-invalid-delegation-001",
-  "agent": {
-    "id": "agent-researcher-01",
-    "type": "llm-autonomous",
-    "operator": "org:acme-corp"
-  },
-  "task": {
-    "id": "task-001",
-    "purpose": "research"
-  },
-  "capabilities": [
-    {
-      "action": "search.web"
-    }
-  ],
-  "delegation": {
-    "depth": 4,
-    "max_depth": 3,
-    "chain": ["agent-01", "tool-a", "tool-b", "tool-c", "tool-d"],
-    "parent_jti": "parent-token-id"
-  }
-}
-```
-
-**Expected Result:** REJECTED — `aap_excessive_delegation` (HTTP 403). The `delegation.depth` (4) exceeds `delegation.max_depth` (3).
-
-### F.3. Edge Case — Clock Skew Tolerance
-
-Given a token with `exp: 1735686000` and a clock skew tolerance of 300 seconds (5 minutes):
-
-| Validation Time | Seconds Past `exp` | Expected Result | Reason |
-|---|---|---|---|
-| 1735686000 | 0 | REJECTED | Token is expired at `exp` (exclusive boundary) |
-| 1735686240 | 240 | ACCEPTED | Within 5-minute tolerance |
-| 1735686300 | 300 | ACCEPTED | At boundary of tolerance (inclusive) |
-| 1735686301 | 301 | REJECTED | Beyond tolerance |
-
----
-
-**End of Appendices**
